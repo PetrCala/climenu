@@ -105,12 +105,13 @@ get_keypress <- function() {
 
   # Fallback: Use readline (requires Enter key)
   # Show hint only once per session
-  if (!exists(".climenu_keypress_hint_shown", envir = .GlobalEnv)) {
+  env <- get("climenu_env", envir = asNamespace("climenu"))
+  if (!exists(".climenu_keypress_hint_shown", envir = env)) {
     cli::cli_alert_info("For better keyboard support, install: {.code install.packages('keypress')}")
-    assign(".climenu_keypress_hint_shown", TRUE, envir = .GlobalEnv)
+    assign(".climenu_keypress_hint_shown", TRUE, envir = env)
   }
 
-  key <- readline(prompt = "Choice (↑/↓/j/k/number/Enter): ")
+  key <- readline(prompt = "Choice (\u2191/\u2193/j/k/number/Enter): ")
 
   # Map text input to commands
   key <- tolower(trimws(key))
@@ -127,7 +128,7 @@ get_keypress <- function() {
     return(list(type = "number", value = num))
   }
 
-  return(key)
+  key
 }
 
 #' Move cursor up n lines

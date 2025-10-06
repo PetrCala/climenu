@@ -23,3 +23,4 @@
 ^LICENSE\.md$
 ^Makefile$
 ^CONTRIBUTING\.md$
+^\.make-help\.md$

@@ -95,8 +95,7 @@ checkbox <- function(choices,
 
   cat("\n")
   if (length(selected_indices) > 0) {
-    selected_values <- choices[selected_indices]
-    cli::cli_alert_success("Selected {length(selected_indices)} item{?s}: {.val {selected_values}}")
+    cli::cli_alert_success("Selected {length(selected_indices)} item{?s}: {.val {choices[selected_indices]}}")
   } else {
     cli::cli_alert_info("No items selected")
   }
