@@ -19,7 +19,6 @@ linters <- lintr::linters_with_defaults(
     fun = lintr::modify_defaults(
       defaults = lintr::default_undesirable_functions,
       print = "use cli::cli_inform()",
-      cat = NULL,  # Allow cat for terminal output
       message = "use cli::cli_inform()",
       warning = "use cli::cli_warn()",
       stop = "use cli::cli_abort()"
@@ -30,5 +29,7 @@ linters <- lintr::linters_with_defaults(
 )
 
 exclusions <- list(
-  "examples/"
+  "examples/",
+  "tests/testthat.R",  # Standard testthat setup file uses library() by convention
+  "vignettes/"  # Vignettes contain example code
 )
