@@ -37,23 +37,47 @@ climenu/
 
 ## Development Commands
 
+The package uses a **Makefile** for all development tasks. This is the standard approach for modern R packages.
+
+### Quick Start
+
 ```bash
-# Install dependencies
+make deps         # Install dependencies (first time)
+make test         # Run test suite
+make lint         # Lint code
+make check        # Run R CMD check
+make all          # Run all quality checks
+```
+
+### All Available Commands
+
+```bash
+make help          # Show all available commands
+make install       # Install package locally
+make test          # Run test suite
+make test-file     # Run specific test (FILE=test-name.R)
+make check         # Run R CMD check
+make check-fast    # Run check without installation
+make lint          # Lint package code
+make document      # Generate documentation
+make build         # Build source package
+make clean         # Remove build artifacts
+make coverage      # Generate test coverage
+make style         # Auto-format code
+make dev           # Load package interactively
+make quick         # Quick cycle (document + test)
+```
+
+### Direct R Commands (Alternative)
+
+If you prefer not to use Make:
+
+```bash
 R -e "devtools::install_deps(dependencies = TRUE)"
-
-# Run tests
 R -e "devtools::test()"
-
-# Check package
 R -e "devtools::check()"
-
-# Generate documentation
 R -e "devtools::document()"
-
-# Build package
 R -e "devtools::build()"
-
-# Install locally
 R -e "devtools::install()"
 ```
 
