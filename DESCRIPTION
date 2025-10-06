@@ -1,0 +1,36 @@
+Package: climenu
+Title: Interactive Command-Line Menus for R
+Version: 0.1.0
+Authors@R:
+    person("Petr", "Čala", , "61505008@fsv.cuni.cz", role = c("aut", "cre"))
+Author: Petr Čala [aut, cre]
+Maintainer: Petr Čala <61505008@fsv.cuni.cz>
+Description: Provides interactive command-line menu functionality for R,
+    inspired by popular CLI tools like inquirer.js, Python's pick, and Go's
+    survey. Supports single and multiple selection menus with keyboard
+    navigation (arrow keys or vi-style j/k), pre-selection, and graceful
+    fallback for non-interactive environments. Designed to be lightweight
+    and easy to integrate into R packages and scripts.
+License: MIT + file LICENSE
+URL: https://github.com/PetrCala/climenu
+BugReports: https://github.com/PetrCala/climenu/issues
+Depends:
+    R (>= 4.0.0)
+Imports:
+    cli (>= 3.6.0)
+Suggests:
+    covr,
+    devtools,
+    keypress,
+    knitr,
+    rmarkdown,
+    roxygen2 (>= 7.0.0),
+    testthat (>= 3.0.0)
+VignetteBuilder:
+    knitr
+Config/testthat/edition: 3
+Config/testthat/parallel: TRUE
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3

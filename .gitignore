@@ -1,0 +1,42 @@
+# R
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.Rdata
+.httr-oauth
+.DS_Store
+.quarto
+
+# R build artifacts
+/*.tar.gz
+/*.Rcheck/
+/vignettes/*.html
+/vignettes/*.pdf
+/doc/
+/Meta/
+
+# pkgdown
+docs/
+_pkgsite/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.code-workspace
+
+# OS
+*~
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.swp
+*.swo
+*~
+.#*
+
+# Local development
+local/
+scratch/

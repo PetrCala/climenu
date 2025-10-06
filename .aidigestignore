@@ -1,0 +1,29 @@
+# AI Digest Ignore - exclude from AI context indexing
+
+# Build artifacts
+.Rcheck/
+*.tar.gz
+doc/
+Meta/
+
+# IDE
+.Rproj.user/
+.vscode/
+.idea/
+
+# Git
+.git/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation (usually verbose)
+man/
+vignettes/*.html
+vignettes/*.pdf
+
+# Logs and temp files
+*.log
+*.swp
+*~

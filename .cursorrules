@@ -1,0 +1,23 @@
+# Cursor AI Rules for climenu
+
+## Project Context
+This is an R package providing interactive CLI menus. Keep code lightweight and terminal-focused.
+
+## Code Style
+- 2-space indentation
+- snake_case naming
+- Use cli::cli_* for messages
+- Allow cat() for terminal output
+- No line length limit but keep readable
+
+## Key Guidelines
+- Keep dependencies minimal
+- Maintain cross-platform compatibility
+- Graceful fallbacks for non-interactive mode
+- Test in both keypress and readline modes
+
+## Avoid
+- Adding heavy dependencies
+- Platform-specific code without fallbacks
+- Breaking changes to public API
+- Over-engineering simple features
