@@ -1,0 +1,445 @@
+---
+title: "Getting Started with climenu"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting Started with climenu}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE  # Set to FALSE since interactive examples can't run in vignettes
+)
+```
+
+```{r setup}
+library(climenu)
+```
+
+## Introduction
+
+`climenu` provides interactive command-line menus for R, inspired by popular CLI tools like [inquirer.js](https://github.com/SBoudrias/Inquirer.js), Python's [pick](https://github.com/wong2/pick), and Go's [survey](https://github.com/AlecAivazis/survey). It offers an intuitive interface for users to make selections directly in the R console, making your scripts and packages more interactive and user-friendly.
+
+### Key Features
+
+- **Single selection menus** - Choose one item from a list
+- **Multiple selection menus** - Select multiple items with checkboxes
+- **Keyboard navigation** - Arrow keys or vi-style (j/k) navigation
+- **Pre-selection support** - Start with items already selected
+- **Flexible returns** - Get back values or indices
+- **Graceful fallback** - Works in non-interactive environments
+
+## Installation
+
+```{r install, eval=FALSE}
+# Install from GitHub
+# install.packages("remotes")
+remotes::install_github("PetrCala/climenu")
+
+# For optimal keyboard support, also install keypress:
+install.packages("keypress")
+```
+
+## Basic Usage
+
+### Single Selection Menu
+
+The simplest way to create a menu is with the `menu()` function:
+
+```{r single-basic}
+# Basic single selection
+colors <- c("Red", "Green", "Blue", "Yellow", "Purple")
+choice <- menu(colors, prompt = "Choose your favorite color:")
+
+# The user navigates with arrow keys (↑/↓) or vi keys (j/k)
+# Press Enter to select
+# Returns: "Blue" (for example)
+```
+
+You can also use the `select()` function directly:
+
+```{r select-direct}
+choice <- select(
+  choices = c("Yes", "No", "Maybe"),
+  prompt = "Do you agree?"
+)
+```
+
+### Multiple Selection Menu
+
+For selecting multiple items, use `type = "checkbox"` or call `checkbox()` directly:
+
+```{r checkbox-basic}
+# Using menu() with checkbox type
+toppings <- c("Pepperoni", "Mushrooms", "Olives", "Onions", "Extra Cheese")
+selected <- menu(
+  toppings,
+  type = "checkbox",
+  prompt = "Select pizza toppings:"
+)
+
+# Or use checkbox() directly
+selected <- checkbox(
+  choices = toppings,
+  prompt = "Select pizza toppings:"
+)
+
+# User navigates with arrow keys, toggles with Space, confirms with Enter
+# Returns: c("Pepperoni", "Extra Cheese", "Mushrooms")
+```
+
+## Advanced Features
+
+### Pre-selection
+
+You can pre-select items by value or by index:
+
+```{r preselect-value}
+# Pre-select by value
+selected <- checkbox(
+  choices = c("Option A", "Option B", "Option C", "Option D"),
+  selected = c("Option A", "Option C"),
+  prompt = "Modify your selection:"
+)
+# Options A and C will be checked initially
+```
+
+```{r preselect-index}
+# Pre-select by index
+selected <- checkbox(
+  choices = c("Option A", "Option B", "Option C", "Option D"),
+  selected = c(1, 3),  # First and third items
+  prompt = "Modify your selection:"
+)
+```
+
+For single-selection menus, pre-selection sets the cursor position:
+
+```{r preselect-single}
+# Start with cursor on the second option
+choice <- select(
+  choices = c("Small", "Medium", "Large"),
+  selected = 2,  # or "Medium"
+  prompt = "Select size:"
+)
+```
+
+### Returning Indices Instead of Values
+
+Sometimes you need the position of the selected item rather than its value:
+
+```{r return-index}
+# Single selection - returns integer
+index <- select(
+  choices = c("First", "Second", "Third"),
+  return_index = TRUE
+)
+# Returns: 2 (if user selected "Second")
+
+# Multiple selection - returns integer vector
+indices <- checkbox(
+  choices = c("Alpha", "Beta", "Gamma", "Delta"),
+  return_index = TRUE
+)
+# Returns: c(1, 3, 4) (if user selected Alpha, Gamma, Delta)
+```
+
+This is particularly useful when you need to map selections back to data structures or when the choice labels differ from the underlying values you want to work with.
+
+## Keyboard Controls
+
+### With keypress Package (Recommended)
+
+When the `keypress` package is installed, you get instant keyboard feedback:
+
+| Key | Action |
+|-----|--------|
+| ↑ or k | Move cursor up |
+| ↓ or j | Move cursor down |
+| Space | Toggle selection (checkbox only) |
+| Enter | Confirm selection |
+| Esc or q | Cancel (returns NULL) |
+
+Install it for the best experience:
+
+```{r install-keypress, eval=FALSE}
+install.packages("keypress")
+```
+
+### Without keypress (Fallback Mode)
+
+If `keypress` is not available, `climenu` falls back to `readline()` mode. You'll need to type commands and press Enter:
+
+- `k` or `up` - Move up
+- `j` or `down` - Move down
+- `space` - Toggle selection (checkbox only)
+- `<number>` - Jump directly to item number
+- `<Enter>` - Confirm selection
+- `q` or `quit` - Cancel
+
+`climenu` will show a one-time message suggesting to install `keypress` for better keyboard support.
+
+## Practical Examples
+
+### Configuration Wizard
+
+```{r config-wizard}
+# Ask user to configure application settings
+cat("\n=== Application Configuration ===\n")
+
+# Choose environment
+env <- select(
+  choices = c("Development", "Staging", "Production"),
+  prompt = "Select environment:"
+)
+
+# Enable features
+features <- checkbox(
+  choices = c("Logging", "Caching", "Analytics", "Debug Mode"),
+  selected = c("Logging", "Caching"),  # Sensible defaults
+  prompt = "Enable features:"
+)
+
+# Choose log level
+log_level <- select(
+  choices = c("ERROR", "WARN", "INFO", "DEBUG", "TRACE"),
+  selected = "INFO",
+  prompt = "Select log level:"
+)
+
+# Build configuration
+config <- list(
+  environment = env,
+  features = features,
+  log_level = log_level
+)
+
+cat("\nConfiguration complete!\n")
+print(config)
+```
+
+### Data Processing Pipeline
+
+```{r data-pipeline}
+# Select datasets to process
+available_datasets <- c(
+  "sales_2023.csv",
+  "sales_2024.csv",
+  "customers.csv",
+  "products.csv",
+  "inventory.csv"
+)
+
+datasets <- checkbox(
+  choices = available_datasets,
+  prompt = "Select datasets to process:"
+)
+
+if (is.null(datasets)) {
+  cat("Processing cancelled.\n")
+} else {
+  # Choose processing method
+  method <- select(
+    choices = c("Fast (approximate)", "Standard", "Thorough (slow)"),
+    prompt = "Select processing method:"
+  )
+
+  cat("\nProcessing", length(datasets), "datasets using", method, "method...\n")
+  # ... processing logic here ...
+}
+```
+
+### File Selection with Indices
+
+```{r file-indices}
+# Get list of files
+files <- list.files(pattern = "\\.csv$")
+
+if (length(files) == 0) {
+  cat("No CSV files found.\n")
+} else {
+  # Let user select files, get indices
+  indices <- checkbox(
+    choices = files,
+    return_index = TRUE,
+    prompt = "Select files to delete:"
+  )
+
+  if (!is.null(indices) && length(indices) > 0) {
+    files_to_delete <- files[indices]
+
+    # Confirm deletion
+    confirm <- select(
+      choices = c("Yes, delete them", "No, cancel"),
+      prompt = paste("Delete", length(files_to_delete), "file(s)?")
+    )
+
+    if (confirm == "Yes, delete them") {
+      file.remove(files_to_delete)
+      cat("Deleted", length(files_to_delete), "file(s).\n")
+    }
+  }
+}
+```
+
+## Handling User Cancellation
+
+When a user cancels a selection (by pressing Esc or q), the menu functions return `NULL`:
+
+```{r handle-null}
+choice <- select(c("Continue", "Skip", "Abort"))
+
+if (is.null(choice)) {
+  cat("User cancelled the operation.\n")
+  # Handle cancellation appropriately
+  stop("Operation cancelled by user")
+}
+
+# Safe to proceed with choice
+cat("User selected:", choice, "\n")
+```
+
+Always check for `NULL` returns when user input is critical to your workflow.
+
+## Non-Interactive Environments
+
+When `climenu` detects it's not running in an interactive session (e.g., in Rscript, automated testing, or R CMD check), it:
+
+- Issues a warning
+- Returns sensible defaults:
+  - `select()`: returns the first choice (or pre-selected item if specified)
+  - `checkbox()`: returns pre-selected items (or empty vector if none)
+- Does not block execution
+
+This ensures your code can run in both interactive and automated contexts.
+
+```{r non-interactive}
+# This will work in both interactive and non-interactive modes
+choice <- select(
+  choices = c("Option 1", "Option 2", "Option 3"),
+  selected = 1  # Fallback for non-interactive
+)
+
+# In non-interactive mode: issues warning and returns "Option 1"
+# In interactive mode: shows menu and waits for user input
+```
+
+## Integration with Packages
+
+If you're building an R package and want to use `climenu`:
+
+### DESCRIPTION File
+
+Add `climenu` to your Imports:
+
+```
+Imports:
+    climenu
+Suggests:
+    keypress
+```
+
+### Using in Package Functions
+
+```{r package-example}
+#' Interactive configuration function
+#' @export
+configure_analysis <- function() {
+  # Check if interactive
+  if (!interactive()) {
+    cli::cli_inform("Using default configuration (non-interactive mode)")
+    return(get_default_config())
+  }
+
+  # Show interactive menu
+  method <- climenu::select(
+    choices = c("Linear Model", "Random Forest", "Neural Network"),
+    prompt = "Select analysis method:"
+  )
+
+  if (is.null(method)) {
+    cli::cli_abort("Configuration cancelled by user")
+  }
+
+  # ... rest of configuration logic ...
+
+  return(config)
+}
+```
+
+## Tips and Best Practices
+
+1. **Keep choices concise** - Long choice text may not display well in narrow terminals
+
+2. **Provide clear prompts** - Tell users what they're selecting and what will happen
+
+3. **Use pre-selection wisely** - Pre-select sensible defaults to improve UX
+
+4. **Handle cancellation** - Always check for `NULL` returns
+
+5. **Test non-interactive behavior** - Ensure your code works in automated contexts
+
+6. **Recommend keypress** - Consider mentioning in your package README that users should install `keypress` for the best experience
+
+7. **Consider sort order** - Present choices in a logical order (alphabetical, by frequency, by importance)
+
+## API Reference
+
+### `menu(choices, prompt, type, selected, return_index)`
+
+Main entry point for creating menus.
+
+**Arguments:**
+
+- `choices`: Character vector of options to display
+- `prompt`: Message to display (default: "Select an item:")
+- `type`: `"select"` for single selection, `"checkbox"` for multiple (default: `"select"`)
+- `selected`: Pre-selected items as indices or values (optional)
+- `return_index`: Logical; return indices instead of values (default: `FALSE`)
+
+**Returns:** Selected value(s) as character vector, or indices as integer vector, or `NULL` if cancelled
+
+### `select(choices, prompt, selected, return_index)`
+
+Single selection menu. Parameters same as `menu()` but without `type`.
+
+### `checkbox(choices, prompt, selected, return_index)`
+
+Multiple selection menu. Parameters same as `menu()` but without `type`.
+
+## Troubleshooting
+
+### Arrow keys not working
+
+Install the `keypress` package for proper arrow key support:
+
+```{r fix-arrows, eval=FALSE}
+install.packages("keypress")
+```
+
+### Menu doesn't display properly
+
+- Ensure your terminal supports ANSI escape codes
+- Check terminal width - very narrow terminals may cause display issues
+- Try running in RStudio console or a standard terminal
+
+### Returns NULL unexpectedly
+
+- Check if running in non-interactive mode (`interactive()` returns `FALSE`)
+- Verify user didn't press Esc/q to cancel
+- Check for empty choice vectors
+
+## Further Reading
+
+- [GitHub Repository](https://github.com/PetrCala/climenu)
+- [Report Issues](https://github.com/PetrCala/climenu/issues)
+- [Contributing Guidelines](https://github.com/PetrCala/climenu/blob/master/CONTRIBUTING.md)
+
+## Conclusion
+
+`climenu` makes it easy to add interactive menus to your R scripts and packages. Whether you're building a data analysis wizard, configuration tool, or just need better user input, `climenu` provides an intuitive and robust solution.
+
+Happy menu-making!
