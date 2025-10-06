@@ -21,3 +21,5 @@
 ^examples$
 ^.*\.Rproj$
 ^LICENSE\.md$
+^Makefile$
+^CONTRIBUTING\.md$

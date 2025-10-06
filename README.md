@@ -134,6 +134,41 @@ Single selection menu.
 
 Multiple selection menu with checkboxes.
 
+## Development
+
+### Quick Start
+
+```bash
+# Install dependencies
+make deps
+
+# Run tests
+make test
+
+# Lint code
+make lint
+
+# Run all checks
+make all
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed development guidelines.
+
+### Available Make Targets
+
+```bash
+make help          # Show all available commands
+make install       # Install package locally
+make test          # Run test suite
+make check         # Run R CMD check
+make lint          # Lint code
+make document      # Generate documentation
+make build         # Build source package
+make coverage      # Generate test coverage report
+make clean         # Remove build artifacts
+make all           # Run all quality checks
+```
+
 ## Design Philosophy
 
 This module is designed to be:
