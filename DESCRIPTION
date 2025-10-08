@@ -1,6 +1,6 @@
 Package: climenu
 Title: Interactive Command-Line Menus for R
-Version: 0.1.0
+Version: 0.1.1
 Authors@R:
     person("Petr", "Čala", , "61505008@fsv.cuni.cz", role = c("aut", "cre"))
 Author: Petr Čala [aut, cre]
