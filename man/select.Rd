@@ -8,7 +8,8 @@ select(
   choices,
   prompt = "Select an item:",
   selected = NULL,
-  return_index = FALSE
+  return_index = FALSE,
+  max_visible = 10L
 )
 }
 \arguments{
@@ -19,6 +20,9 @@ select(
 \item{selected}{Pre-selected item (index or value)}
 
 \item{return_index}{Return index instead of value (default: FALSE)}
+
+\item{max_visible}{Maximum number of items to display at once (default: 10).
+Set to NULL to show all items.}
 }
 \value{
 Selected item as character or index, or NULL if cancelled
@@ -31,5 +35,8 @@ Uses arrow keys (or j/k) to navigate and Enter to select.
 \dontrun{
 choice <- select(c("Yes", "No", "Maybe"))
 index <- select(c("First", "Second", "Third"), return_index = TRUE)
+
+# With scrolling for long lists
+choice <- select(1:100, max_visible = 10)
 }
 }

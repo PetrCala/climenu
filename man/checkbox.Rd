@@ -8,7 +8,8 @@ checkbox(
   choices,
   prompt = "Select items (Space to toggle, Enter to confirm):",
   selected = NULL,
-  return_index = FALSE
+  return_index = FALSE,
+  max_visible = 10L
 )
 }
 \arguments{
@@ -19,6 +20,9 @@ checkbox(
 \item{selected}{Pre-selected items (indices or values)}
 
 \item{return_index}{Return indices instead of values (default: FALSE)}
+
+\item{max_visible}{Maximum number of items to display at once (default: 10).
+Set to NULL to show all items.}
 }
 \value{
 Selected items as character vector or indices, or NULL if cancelled
@@ -39,5 +43,8 @@ options <- checkbox(
   c("Option A", "Option B", "Option C"),
   selected = c(1, 3)
 )
+
+# With scrolling for long lists
+items <- checkbox(1:100, max_visible = 10)
 }
 }

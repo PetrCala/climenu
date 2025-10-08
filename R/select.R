@@ -7,6 +7,8 @@
 #' @param prompt Prompt message to display
 #' @param selected Pre-selected item (index or value)
 #' @param return_index Return index instead of value (default: FALSE)
+#' @param max_visible Maximum number of items to display at once (default: 10).
+#'   Set to NULL to show all items.
 #'
 #' @return Selected item as character or index, or NULL if cancelled
 #' @export
@@ -15,11 +17,15 @@
 #' \dontrun{
 #' choice <- select(c("Yes", "No", "Maybe"))
 #' index <- select(c("First", "Second", "Third"), return_index = TRUE)
+#'
+#' # With scrolling for long lists
+#' choice <- select(1:100, max_visible = 10)
 #' }
 select <- function(choices,
                    prompt = "Select an item:",
                    selected = NULL,
-                   return_index = FALSE) {
+                   return_index = FALSE,
+                   max_visible = 10L) {
   # Validate inputs
   validate_choices(choices)
 
@@ -35,6 +41,16 @@ select <- function(choices,
     return(if (return_index) 1L else choices[1])
   }
 
+  # Initialize window offset for scrolling
+  window_offset <- 1L
+
+  # Adjust initial window to show cursor
+  if (!is.null(max_visible) && max_visible < n_choices) {
+    # Center cursor in window if possible
+    ideal_offset <- cursor_pos - as.integer(max_visible / 2)
+    window_offset <- max(1L, min(ideal_offset, n_choices - max_visible + 1L))
+  }
+
   # Display prompt
   cat("\n")
   cli::cli_text(prompt)
@@ -47,7 +63,9 @@ select <- function(choices,
       choices = choices,
       cursor_pos = cursor_pos,
       selected_indices = NULL,
-      type = "select"
+      type = "select",
+      window_offset = window_offset,
+      max_visible = max_visible
     )
 
     n_lines <- length(menu_lines)
@@ -61,8 +79,31 @@ select <- function(choices,
     # Handle key press
     if (key %in% c("up", "k")) {
       cursor_pos <- if (cursor_pos > 1) cursor_pos - 1L else n_choices
+
+      # Adjust window if cursor moved outside visible range
+      if (!is.null(max_visible) && max_visible < n_choices) {
+        if (cursor_pos < window_offset) {
+          window_offset <- cursor_pos
+        }
+        # Handle wrap-around from top to bottom
+        if (cursor_pos == n_choices && window_offset != max(1L, n_choices - max_visible + 1L)) {
+          window_offset <- max(1L, n_choices - max_visible + 1L)
+        }
+      }
     } else if (key %in% c("down", "j")) {
       cursor_pos <- if (cursor_pos < n_choices) cursor_pos + 1L else 1L
+
+      # Adjust window if cursor moved outside visible range
+      if (!is.null(max_visible) && max_visible < n_choices) {
+        visible_end <- min(window_offset + max_visible - 1L, n_choices)
+        if (cursor_pos > visible_end) {
+          window_offset <- cursor_pos - max_visible + 1L
+        }
+        # Handle wrap-around from bottom to top
+        if (cursor_pos == 1L) {
+          window_offset <- 1L
+        }
+      }
     } else if (key == "enter") {
       break
     } else if (key == "esc") {

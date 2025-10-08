@@ -48,33 +48,62 @@ normalize_selected <- function(selected, choices, multiple = FALSE) {
 #' Render menu display
 #' @keywords internal
 #' @noRd
-render_menu <- function(choices, cursor_pos, selected_indices, type = c("select", "checkbox")) {
+render_menu <- function(choices, cursor_pos, selected_indices, type = c("select", "checkbox"),
+                        window_offset = 1L, max_visible = NULL) {
   type <- match.arg(type)
 
-  lines <- character(length(choices))
+  n_choices <- length(choices)
 
-  for (i in seq_along(choices)) {
+  # Determine visible range
+  if (is.null(max_visible) || max_visible >= n_choices) {
+    # Show all items (backward compatible)
+    visible_start <- 1L
+    visible_end <- n_choices
+  } else {
+    visible_start <- window_offset
+    visible_end <- min(window_offset + max_visible - 1L, n_choices)
+  }
+
+  # Track lines for clearing later
+  lines <- character(0)
+
+  # Show indicator if there are items above
+  items_above <- visible_start - 1L
+  if (items_above > 0) {
+    indicator <- cli::col_silver(sprintf("\u2191 %d more above", items_above))
+    cat(indicator, "\n", sep = "")
+    lines <- c(lines, indicator)
+  }
+
+  # Render visible items
+  for (i in visible_start:visible_end) {
     is_cursor <- i == cursor_pos
     is_selected <- i %in% selected_indices
 
     if (type == "checkbox") {
       checkbox_mark <- if (is_selected) "\u2611" else "\u2610"  # ☑ or ☐
       cursor_mark <- if (is_cursor) "\u276f" else " "  # ❯
-      lines[i] <- sprintf("%s %s %s", cursor_mark, checkbox_mark, choices[i])
+      line <- sprintf("%s %s %s", cursor_mark, checkbox_mark, choices[i])
     } else {
       cursor_mark <- if (is_cursor) "\u276f" else " "  # ❯
-      lines[i] <- sprintf("%s %s", cursor_mark, choices[i])
+      line <- sprintf("%s %s", cursor_mark, choices[i])
     }
 
     # Apply styling
     if (is_cursor) {
-      lines[i] <- cli::col_cyan(lines[i])
+      line <- cli::col_cyan(line)
     }
+
+    cat(line, "\n", sep = "")
+    lines <- c(lines, line)
   }
 
-  # Print lines
-  for (line in lines) {
-    cat(line, "\n", sep = "")
+  # Show indicator if there are items below
+  items_below <- n_choices - visible_end
+  if (items_below > 0) {
+    indicator <- cli::col_silver(sprintf("\u2193 %d more below", items_below))
+    cat(indicator, "\n", sep = "")
+    lines <- c(lines, indicator)
   }
 
   return(lines)
