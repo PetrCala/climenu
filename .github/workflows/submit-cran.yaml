@@ -1,5 +1,5 @@
-# Lightweight CRAN Submission Workflow
-# Runs CRAN checks on PRs to master and pushes to master, allows manual submission to CRAN
+# CRAN Submission Workflow
+# Runs CRAN checks and automatically submits to CRAN on every push to master
 name: Submit to CRAN
 
 on:
@@ -193,9 +193,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: cran-checks
     if: |
-      github.event_name == 'workflow_dispatch' &&
-      github.event.inputs.submit_to_cran == 'yes' &&
-      needs.cran-checks.outputs.check_status == 'success'
+      needs.cran-checks.outputs.check_status == 'success' &&
+      (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.submit_to_cran == 'yes'))
     name: Submit to CRAN
     steps:
       - name: Check out repository
@@ -306,14 +305,20 @@ jobs:
           echo ""
           if [ "${{ needs.cran-checks.outputs.check_status }}" = "success" ]; then
             echo "✅ All checks passed!"
-            if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+            if [ "${{ github.event_name }}" == "push" ]; then
               echo ""
-              echo "To submit to CRAN:"
-              echo "  1. Go to Actions > Submit to CRAN > Run workflow"
-              echo "  2. Select 'yes' for 'Submit to CRAN after checks pass?'"
+              echo "🚀 Automatic CRAN submission will proceed..."
+            elif [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+              if [ "${{ github.event.inputs.submit_to_cran }}" == "yes" ]; then
+                echo ""
+                echo "🚀 Manual CRAN submission will proceed..."
+              else
+                echo ""
+                echo "ℹ️  Manual submission was not requested."
+              fi
             fi
           else
-            echo "❌ Checks failed. Please fix issues before submitting."
+            echo "❌ Checks failed. CRAN submission will not proceed."
           fi
           echo ""
           echo "Review the check results in the artifacts above."
