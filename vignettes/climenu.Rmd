@@ -21,7 +21,7 @@ library(climenu)
 
 ## Introduction
 
-`climenu` provides interactive command-line menus for R, inspired by popular CLI tools like [inquirer.js](https://github.com/SBoudrias/Inquirer.js), Python's [pick](https://github.com/wong2/pick), and Go's [survey](https://github.com/AlecAivazis/survey). It offers an intuitive interface for users to make selections directly in the R console, making your scripts and packages more interactive and user-friendly.
+`climenu` provides interactive command-line menus for R, inspired by popular CLI tools like [inquirer.js](https://github.com/SBoudrias/Inquirer.js), Python's [pick](https://github.com/aisk/pick), and Go's [survey](https://github.com/AlecAivazis/survey). It offers an intuitive interface for users to make selections directly in the R console, making your scripts and packages more interactive and user-friendly.
 
 ### Key Features
 
