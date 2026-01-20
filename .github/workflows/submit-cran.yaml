@@ -70,7 +70,26 @@ jobs:
       - name: Run R CMD check --as-cran
         id: rcmdCheck
         run: |
-          tarball <- list.files(pattern = "\\.tar\\.gz$", full.names = TRUE)[1]
+          tarball_name <- "${{ steps.buildPkg.outputs.BUILD_ARTIFACT }}"
+          if (is.null(tarball_name) || tarball_name == "" || is.na(tarball_name)) {
+            # Fallback: try to find the tarball
+            tarball_files <- list.files(pattern = "\\.tar\\.gz$", full.names = TRUE)
+            if (length(tarball_files) == 0) {
+              stop("No tarball found. Build step may have failed.")
+            }
+            tarball <- tarball_files[1]
+          } else {
+            tarball <- tarball_name
+            # Ensure we have the full path if it's just a filename
+            if (!file.exists(tarball)) {
+              tarball <- file.path(getwd(), tarball)
+            }
+          }
+
+          if (!file.exists(tarball)) {
+            stop("Tarball not found: ", tarball)
+          }
+
           cat("Running R CMD check on:", tarball, "\n")
           results <- rcmdcheck::rcmdcheck(
             tarball,
