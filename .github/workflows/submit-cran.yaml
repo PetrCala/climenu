@@ -224,7 +224,45 @@ jobs:
 
       - name: Submit to CRAN
         run: |
-          built_path <- list.files(pattern = "\\.tar\\.gz$", full.names = TRUE)[1]
+          tarball_name <- "${{ needs.cran-checks.outputs.build_artifact }}"
+
+          # Search for the tarball in common locations
+          # Artifacts are downloaded, so check current directory and subdirectories
+          search_paths <- character(0)
+          if (tarball_name != "") {
+            search_paths <- c(
+              tarball_name,  # Current directory
+              file.path(".", tarball_name),  # Explicit current directory
+              file.path("..", tarball_name)  # Parent directory
+            )
+          }
+
+          # Also search for any .tar.gz files
+          tarball_files <- c(
+            list.files(pattern = "\\.tar\\.gz$", full.names = TRUE, recursive = TRUE),
+            list.files(path = ".", pattern = "\\.tar\\.gz$", full.names = TRUE, recursive = TRUE)
+          )
+
+          built_path <- NULL
+
+          # First try the expected paths
+          for (path in search_paths) {
+            if (file.exists(path)) {
+              built_path <- normalizePath(path)
+              break
+            }
+          }
+
+          # If not found, use the first .tar.gz file found
+          if (is.null(built_path) && length(tarball_files) > 0) {
+            built_path <- normalizePath(tarball_files[1])
+          }
+
+          if (is.null(built_path) || !file.exists(built_path)) {
+            stop("Tarball not found for submission. Expected: ", tarball_name, "\n",
+                 "Searched in current directory and subdirectories.")
+          }
+
           cli::cli_inform("Submitting to CRAN: {.path {built_path}}")
 
           # Override devtools::yesno to auto-confirm
