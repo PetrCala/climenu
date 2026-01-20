@@ -40,3 +40,9 @@ Thumbs.db
 # Local development
 local/
 scratch/
+
+# CRAN
+CRAN-SUBMISSION/
+cran-comments.md
+cran-release.md
+cran-release.md

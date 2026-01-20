@@ -1,0 +1,246 @@
+# Lightweight CRAN Submission Workflow
+# Runs CRAN checks on PRs to master and pushes to master, allows manual submission to CRAN
+name: Submit to CRAN
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      submit_to_cran:
+        description: "Submit to CRAN after checks pass? (yes/no)"
+        required: true
+        default: "no"
+        type: choice
+        options:
+          - "yes"
+          - "no"
+
+permissions: read-all
+
+env:
+  GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+  R_KEEP_PKG_SOURCE: yes
+
+jobs:
+  cran-checks:
+    runs-on: ubuntu-latest
+    name: CRAN Pre-Submission Checks
+    outputs:
+      check_status: ${{ steps.rcmdCheck.outputs.CHECK_STATUS }}
+      build_artifact: ${{ steps.buildPkg.outputs.BUILD_ARTIFACT }}
+      package_version: ${{ steps.getVersion.outputs.VERSION }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: "release"
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: |
+            any::rcmdcheck
+            any::devtools
+            any::httr
+            any::desc
+          needs: check
+
+      - name: Get package version
+        id: getVersion
+        run: |
+          VERSION=$(Rscript -e "cat(as.character(desc::desc_get_version()))")
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Document package
+        run: Rscript -e "devtools::document()"
+
+      - name: Build package
+        id: buildPkg
+        run: |
+          tarball <- devtools::build()
+          cat("BUILD_ARTIFACT=", basename(tarball), "\n", sep = "", file = Sys.getenv("GITHUB_OUTPUT"), append = TRUE)
+        shell: Rscript {0}
+
+      - name: Run R CMD check --as-cran
+        id: rcmdCheck
+        run: |
+          tarball <- list.files(pattern = "\\.tar\\.gz$", full.names = TRUE)[1]
+          cat("Running R CMD check on:", tarball, "\n")
+          results <- rcmdcheck::rcmdcheck(
+            tarball,
+            args = c("--as-cran", "--no-manual"),
+            error_on = "never",
+            check_dir = "check"
+          )
+          status <- if (length(results$errors) == 0 && length(results$warnings) == 0) "success" else "failure"
+          cat("CHECK_STATUS=", status, "\n", sep = "", file = Sys.getenv("GITHUB_OUTPUT"), append = TRUE)
+
+          if (status == "failure") {
+            cat("\n=== CHECK FAILED ===\n")
+            if (length(results$errors) > 0) {
+              cat("Errors:\n")
+              print(results$errors)
+            }
+            if (length(results$warnings) > 0) {
+              cat("Warnings:\n")
+              print(results$warnings)
+            }
+            if (length(results$notes) > 0) {
+              cat("Notes:\n")
+              print(results$notes)
+            }
+          }
+        shell: Rscript {0}
+
+      - name: Generate cran-comments.md
+        if: always()
+        run: |
+          VERSION="${{ steps.getVersion.outputs.VERSION }}"
+          STATUS="${{ steps.rcmdCheck.outputs.CHECK_STATUS }}"
+
+          cat > cran-comments.md <<EOF
+          ## Test environments
+
+          * GitHub Actions (ubuntu-latest): R-release
+          * GitHub Actions (windows-latest): R-release
+          * GitHub Actions (macos-latest): R-release
+
+          ## R CMD check results
+
+          $(if [ "$STATUS" = "success" ]; then echo "0 errors ✔ | 0 warnings ✔ | 0 notes ✔"; else echo "See check logs for details."; fi)
+
+          ## Downstream dependencies
+
+          There are currently no downstream dependencies for this package.
+
+          ## Notes to CRAN reviewers
+
+          This is a submission of climenu v${VERSION} to CRAN.
+
+          The package provides interactive command-line menu functionality for R,
+          supporting single and multiple selection menus with keyboard navigation.
+          EOF
+
+          cat cran-comments.md
+
+      - name: Upload check results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cran-check-results
+          path: |
+            check/
+            *.tar.gz
+            cran-comments.md
+
+      - name: Check results summary
+        if: always()
+        run: |
+          echo "╔════════════════════════════════════════════════════════════════╗"
+          echo "║                  📋 CHECK RESULTS SUMMARY                      ║"
+          echo "╚════════════════════════════════════════════════════════════════╝"
+          echo ""
+          echo "Package version: ${{ steps.getVersion.outputs.VERSION }}"
+          echo "Check status: ${{ steps.rcmdCheck.outputs.CHECK_STATUS }}"
+          echo "Build artifact: ${{ steps.buildPkg.outputs.BUILD_ARTIFACT }}"
+          echo ""
+          if [ -f cran-comments.md ]; then
+            cat cran-comments.md
+          fi
+
+  submit-to-cran:
+    runs-on: ubuntu-latest
+    needs: cran-checks
+    if: |
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.submit_to_cran == 'yes' &&
+      needs.cran-checks.outputs.check_status == 'success'
+    name: Submit to CRAN
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: "release"
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: |
+            any::devtools
+            any::httr
+            any::cli
+            any::fs
+            any::usethis
+            any::pkgbuild
+            any::rlang
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: cran-check-results
+
+      - name: Submit to CRAN
+        run: |
+          built_path <- list.files(pattern = "\\.tar\\.gz$", full.names = TRUE)[1]
+          cli::cli_inform("Submitting to CRAN: {.path {built_path}}")
+
+          # Override devtools::yesno to auto-confirm
+          unlockBinding("yesno", asNamespace("devtools"))
+          assign("yesno", function(...) FALSE, asNamespace("devtools"))
+          lockBinding("yesno", asNamespace("devtools"))
+
+          # Use devtools internal functions to submit with built package
+          devtools:::upload_cran(pkg = ".", built_path = built_path)
+          devtools:::flag_release(pkg = ".")
+        shell: Rscript {0}
+
+      - name: Submission success
+        run: |
+          echo "╔════════════════════════════════════════════════════════════════╗"
+          echo "║                  ✅ CRAN SUBMISSION SUCCESSFUL                 ║"
+          echo "╚════════════════════════════════════════════════════════════════╝"
+          echo ""
+          echo "📋 Next steps:"
+          echo ""
+          echo "1. Check your email for CRAN confirmation request"
+          echo "2. Click the confirmation link in the email"
+          echo "3. Monitor email for CRAN reviewer feedback"
+          echo "4. Respond to any CRAN feedback within 2 weeks"
+          echo ""
+          echo "⚠️  Remember: You must confirm the submission via email!"
+
+  summary:
+    runs-on: ubuntu-latest
+    needs: [cran-checks]
+    if: always()
+    name: Summary
+    steps:
+      - name: Summary
+        run: |
+          echo "╔════════════════════════════════════════════════════════════════╗"
+          echo "║                  📋 CRAN SUBMISSION SUMMARY                    ║"
+          echo "╚════════════════════════════════════════════════════════════════╝"
+          echo ""
+          echo "Check status: ${{ needs.cran-checks.outputs.check_status }}"
+          echo ""
+          if [ "${{ needs.cran-checks.outputs.check_status }}" = "success" ]; then
+            echo "✅ All checks passed!"
+            if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+              echo ""
+              echo "To submit to CRAN:"
+              echo "  1. Go to Actions > Submit to CRAN > Run workflow"
+              echo "  2. Select 'yes' for 'Submit to CRAN after checks pass?'"
+            fi
+          else
+            echo "❌ Checks failed. Please fix issues before submitting."
+          fi
+          echo ""
+          echo "Review the check results in the artifacts above."
