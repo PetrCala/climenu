@@ -130,3 +130,184 @@ test_that("menu exports all expected functions", {
   expect_true(is.function(climenu::checkbox))
   expect_true(is.function(climenu::select))
 })
+
+# Tests for select all feature
+test_that("allow_select_all = FALSE maintains backward compatibility", {
+  choices <- c("A", "B", "C")
+
+  # Should work exactly as before
+  expect_warning(result <- climenu::checkbox(choices, allow_select_all = FALSE))
+  expect_equal(result, character(0))
+
+  # With pre-selection
+  expect_warning(
+    result <- climenu::checkbox(choices, selected = c(1, 2), allow_select_all = FALSE),
+    "Not running in interactive mode"
+  )
+  expect_equal(result, c("A", "B"))
+})
+
+test_that("allow_select_all parameter validation", {
+  choices <- c("A", "B", "C")
+
+  # Invalid: not logical
+  expect_error(
+    climenu::checkbox(choices, allow_select_all = "yes"),
+    "allow_select_all must be a single logical value"
+  )
+
+  # Invalid: NA
+  expect_error(
+    climenu::checkbox(choices, allow_select_all = NA),
+    "allow_select_all must be a single logical value"
+  )
+
+  # Invalid: multiple values
+  expect_error(
+    climenu::checkbox(choices, allow_select_all = c(TRUE, FALSE)),
+    "allow_select_all must be a single logical value"
+  )
+})
+
+test_that("render_menu displays select all option when enabled", {
+  choices <- c("A", "B", "C")
+
+  # Test with select all enabled
+  output <- capture.output(
+    lines <- climenu:::render_menu(
+      choices = choices,
+      cursor_pos = 1,
+      selected_indices = c(1, 2),
+      type = "checkbox",
+      allow_select_all = TRUE,
+      select_all_text = "Select all"
+    )
+  )
+
+  # Should have 4 lines: special option + 3 choices
+  expect_length(lines, 4)
+  expect_length(output, 4)
+
+  # First line should contain "Select all"
+  expect_true(grepl("Select all", lines[1]))
+  expect_true(grepl("Select all", output[1]))
+})
+
+test_that("render_menu shows Deselect all when all items selected", {
+  choices <- c("A", "B", "C")
+
+  # Test with all items selected
+  output <- capture.output(
+    lines <- climenu:::render_menu(
+      choices = choices,
+      cursor_pos = 1,
+      selected_indices = c(1, 2, 3),
+      type = "checkbox",
+      allow_select_all = TRUE,
+      select_all_text = "Deselect all"
+    )
+  )
+
+  # First line should contain "Deselect all"
+  expect_true(grepl("Deselect all", lines[1]))
+  expect_true(grepl("Deselect all", output[1]))
+})
+
+test_that("checkbox with allow_select_all in non-interactive mode", {
+  choices <- c("A", "B", "C")
+
+  # Without pre-selection
+  expect_warning(
+    result <- climenu::checkbox(choices, allow_select_all = TRUE),
+    "Not running in interactive mode"
+  )
+  expect_equal(result, character(0))
+
+  # With pre-selection - should return only real choices, not special option
+  expect_warning(
+    result <- climenu::checkbox(choices, selected = c(1, 2), allow_select_all = TRUE),
+    "Not running in interactive mode"
+  )
+  expect_equal(result, c("A", "B"))
+  expect_false("Select all" %in% result)
+  expect_false("Deselect all" %in% result)
+})
+
+test_that("checkbox with allow_select_all and return_index", {
+  choices <- c("A", "B", "C")
+
+  # Should return indices of real choices only
+  expect_warning(
+    result <- climenu::checkbox(
+      choices,
+      selected = c(1, 3),
+      allow_select_all = TRUE,
+      return_index = TRUE
+    ),
+    "Not running in interactive mode"
+  )
+  expect_equal(result, c(1L, 3L))
+  expect_true(all(result %in% seq_along(choices)))
+})
+
+test_that("checkbox select all works with all items pre-selected", {
+  choices <- c("A", "B", "C")
+
+  # All items pre-selected
+  expect_warning(
+    result <- climenu::checkbox(
+      choices,
+      selected = c(1, 2, 3),
+      allow_select_all = TRUE
+    ),
+    "Not running in interactive mode"
+  )
+  expect_equal(result, c("A", "B", "C"))
+  expect_length(result, 3)
+})
+
+test_that("checkbox select all works with empty selection", {
+  choices <- c("A", "B", "C")
+
+  # No items selected
+  expect_warning(
+    result <- climenu::checkbox(choices, allow_select_all = TRUE),
+    "Not running in interactive mode"
+  )
+  expect_equal(result, character(0))
+  expect_length(result, 0)
+})
+
+test_that("render_menu handles cursor position correctly with select all", {
+  choices <- c("A", "B", "C")
+
+  # Cursor on special option (position 1)
+  output <- capture.output(
+    lines <- climenu:::render_menu(
+      choices = choices,
+      cursor_pos = 1,
+      selected_indices = c(1, 2),
+      type = "checkbox",
+      allow_select_all = TRUE,
+      select_all_text = "Select all"
+    )
+  )
+
+  # First line should be highlighted (cursor on it)
+  expect_true(grepl("Select all", lines[1]))
+
+  # Cursor on first real choice (position 2)
+  output2 <- capture.output(
+    lines2 <- climenu:::render_menu(
+      choices = choices,
+      cursor_pos = 2,
+      selected_indices = c(1, 2),
+      type = "checkbox",
+      allow_select_all = TRUE,
+      select_all_text = "Select all"
+    )
+  )
+
+  # Second line should be highlighted (first real choice)
+  expect_true(grepl("A", lines2[2]))
+})

@@ -2,6 +2,8 @@
 #'
 #' Interactive menu for selecting multiple items from a list.
 #' Uses arrow keys (or j/k) to navigate, Space to toggle, and Enter to confirm.
+#' Optionally includes a "Select all" / "Deselect all" option at the top when
+#' `allow_select_all = TRUE`.
 #'
 #' @param choices Character vector of choices to display
 #' @param prompt Prompt message to display
@@ -9,8 +11,12 @@
 #' @param return_index Return indices instead of values (default: FALSE)
 #' @param max_visible Maximum number of items to display at once (default: 10).
 #'   Set to NULL to show all items.
+#' @param allow_select_all If `TRUE`, adds a "Select all" / "Deselect all" option
+#'   at the top of the menu. When selected, toggles all items at once. The option
+#'   text dynamically changes based on selection state (default: FALSE).
 #'
-#' @return Selected items as character vector or indices, or NULL if cancelled
+#' @return Selected items as character vector or indices, or NULL if cancelled.
+#'   The special "Select all" option is never included in the returned results.
 #' @export
 #'
 #' @examples
@@ -28,21 +34,37 @@
 #'
 #' # With scrolling for long lists
 #' items <- checkbox(1:100, max_visible = 10)
+#'
+#' # With select all feature
+#' methods <- checkbox(
+#'   c("method_a", "method_b", "method_c"),
+#'   allow_select_all = TRUE,
+#'   prompt = "Select methods to run:"
+#' )
 #' }
 checkbox <- function(choices,
                      prompt = "Select items (Space to toggle, Enter to confirm):",
                      selected = NULL,
                      return_index = FALSE,
-                     max_visible = 10L) {
+                     max_visible = 10L,
+                     allow_select_all = FALSE) {
   # Validate inputs
   validate_choices(choices)
+  if (!is.logical(allow_select_all) || length(allow_select_all) != 1 || is.na(allow_select_all)) {
+    cli::cli_abort("allow_select_all must be a single logical value")
+  }
 
   # Initialize selected items
   selected_indices <- normalize_selected(selected, choices, multiple = TRUE)
   if (is.null(selected_indices)) selected_indices <- integer(0)
 
-  cursor_pos <- 1L
   n_choices <- length(choices)
+
+  # When select all is enabled, position 1 is the special option
+  # Real choices start at position 2 (which maps to index 1 in choices)
+  # Effective menu length includes the special option
+  effective_length <- if (allow_select_all) n_choices + 1L else n_choices
+  cursor_pos <- 1L
 
   # Check if running in interactive mode
   if (!interactive()) {
@@ -59,10 +81,21 @@ checkbox <- function(choices,
   window_offset <- 1L
 
   # Adjust initial window to show cursor
-  if (!is.null(max_visible) && max_visible < n_choices) {
+  # When select all is enabled, we need to account for the special option
+  if (!is.null(max_visible) && max_visible < effective_length) {
     # Center cursor in window if possible
     ideal_offset <- cursor_pos - as.integer(max_visible / 2)
-    window_offset <- max(1L, min(ideal_offset, n_choices - max_visible + 1L))
+    window_offset <- max(1L, min(ideal_offset, effective_length - max_visible + 1L))
+  }
+
+  # Helper function to compute select all option text
+  get_select_all_text <- function() {
+    all_selected <- length(selected_indices) == n_choices && n_choices > 0
+    if (all_selected) {
+      return("Deselect all")
+    } else {
+      return("Select all")
+    }
   }
 
   # Display prompt
@@ -79,7 +112,9 @@ checkbox <- function(choices,
       selected_indices = selected_indices,
       type = "checkbox",
       window_offset = window_offset,
-      max_visible = max_visible
+      max_visible = max_visible,
+      allow_select_all = allow_select_all,
+      select_all_text = if (allow_select_all) get_select_all_text() else NULL
     )
 
     n_lines <- length(menu_lines)
@@ -92,24 +127,24 @@ checkbox <- function(choices,
 
     # Handle key press
     if (key %in% c("up", "k")) {
-      cursor_pos <- if (cursor_pos > 1) cursor_pos - 1L else n_choices
+      cursor_pos <- if (cursor_pos > 1) cursor_pos - 1L else effective_length
 
       # Adjust window if cursor moved outside visible range
-      if (!is.null(max_visible) && max_visible < n_choices) {
+      if (!is.null(max_visible) && max_visible < effective_length) {
         if (cursor_pos < window_offset) {
           window_offset <- cursor_pos
         }
         # Handle wrap-around from top to bottom
-        if (cursor_pos == n_choices && window_offset != max(1L, n_choices - max_visible + 1L)) {
-          window_offset <- max(1L, n_choices - max_visible + 1L)
+        if (cursor_pos == effective_length && window_offset != max(1L, effective_length - max_visible + 1L)) {
+          window_offset <- max(1L, effective_length - max_visible + 1L)
         }
       }
     } else if (key %in% c("down", "j")) {
-      cursor_pos <- if (cursor_pos < n_choices) cursor_pos + 1L else 1L
+      cursor_pos <- if (cursor_pos < effective_length) cursor_pos + 1L else 1L
 
       # Adjust window if cursor moved outside visible range
-      if (!is.null(max_visible) && max_visible < n_choices) {
-        visible_end <- min(window_offset + max_visible - 1L, n_choices)
+      if (!is.null(max_visible) && max_visible < effective_length) {
+        visible_end <- min(window_offset + max_visible - 1L, effective_length)
         if (cursor_pos > visible_end) {
           window_offset <- cursor_pos - max_visible + 1L
         }
@@ -119,11 +154,26 @@ checkbox <- function(choices,
         }
       }
     } else if (key == "space") {
-      # Toggle selection
-      if (cursor_pos %in% selected_indices) {
-        selected_indices <- setdiff(selected_indices, cursor_pos)
+      # Handle special select all option
+      if (allow_select_all && cursor_pos == 1L) {
+        # Toggle all items
+        all_selected <- length(selected_indices) == n_choices && n_choices > 0
+        if (all_selected) {
+          # Deselect all
+          selected_indices <- integer(0)
+        } else {
+          # Select all
+          selected_indices <- seq_len(n_choices)
+        }
       } else {
-        selected_indices <- c(selected_indices, cursor_pos)
+        # Normal toggle for real choices
+        # Map cursor position to choice index (position 2 = index 1, etc.)
+        choice_index <- if (allow_select_all) cursor_pos - 1L else cursor_pos
+        if (choice_index %in% selected_indices) {
+          selected_indices <- setdiff(selected_indices, choice_index)
+        } else {
+          selected_indices <- c(selected_indices, choice_index)
+        }
       }
     } else if (key == "enter") {
       break

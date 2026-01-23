@@ -49,19 +49,21 @@ normalize_selected <- function(selected, choices, multiple = FALSE) {
 #' @keywords internal
 #' @noRd
 render_menu <- function(choices, cursor_pos, selected_indices, type = c("select", "checkbox"),
-                        window_offset = 1L, max_visible = NULL) {
+                        window_offset = 1L, max_visible = NULL, allow_select_all = FALSE,
+                        select_all_text = NULL) {
   type <- match.arg(type)
 
   n_choices <- length(choices)
+  effective_length <- if (allow_select_all) n_choices + 1L else n_choices
 
-  # Determine visible range
-  if (is.null(max_visible) || max_visible >= n_choices) {
+  # Determine visible range (accounting for special option if enabled)
+  if (is.null(max_visible) || max_visible >= effective_length) {
     # Show all items (backward compatible)
     visible_start <- 1L
-    visible_end <- n_choices
+    visible_end <- effective_length
   } else {
     visible_start <- window_offset
-    visible_end <- min(window_offset + max_visible - 1L, n_choices)
+    visible_end <- min(window_offset + max_visible - 1L, effective_length)
   }
 
   # Track lines for clearing later
@@ -76,30 +78,53 @@ render_menu <- function(choices, cursor_pos, selected_indices, type = c("select"
   }
 
   # Render visible items
-  for (i in visible_start:visible_end) {
-    is_cursor <- i == cursor_pos
-    is_selected <- i %in% selected_indices
+  for (pos in visible_start:visible_end) {
+    is_cursor <- pos == cursor_pos
 
-    if (type == "checkbox") {
-      checkbox_mark <- if (is_selected) "\u2611" else "\u2610"  # ☑ or ☐
-      cursor_mark <- if (is_cursor) "\u276f" else " "  # ❯
-      line <- sprintf("%s %s %s", cursor_mark, checkbox_mark, choices[i])
+    # Handle special select all option at position 1
+    if (allow_select_all && pos == 1L) {
+      # Render the special "Select all" / "Deselect all" option
+      cursor_mark <- if (is_cursor) "\u276f" else " " # <U+276F>
+      # Special option doesn't have a checkbox, just text
+      line <- sprintf("%s   %s", cursor_mark, select_all_text)
+
+      # Apply styling
+      if (is_cursor) {
+        line <- cli::col_cyan(line)
+      } else {
+        # Use a slightly different color to distinguish it
+        line <- cli::col_silver(line)
+      }
+
+      cat(line, "\n", sep = "")
+      lines <- c(lines, line)
     } else {
-      cursor_mark <- if (is_cursor) "\u276f" else " "  # ❯
-      line <- sprintf("%s %s", cursor_mark, choices[i])
-    }
+      # Render normal choice item
+      # Map position to choice index (position 2 = index 1, etc.)
+      choice_index <- if (allow_select_all) pos - 1L else pos
+      is_selected <- choice_index %in% selected_indices
 
-    # Apply styling
-    if (is_cursor) {
-      line <- cli::col_cyan(line)
-    }
+      if (type == "checkbox") {
+        checkbox_mark <- if (is_selected) "\u2611" else "\u2610" # <U+2611> or <U+2610>
+        cursor_mark <- if (is_cursor) "\u276f" else " " # <U+276F>
+        line <- sprintf("%s %s %s", cursor_mark, checkbox_mark, choices[choice_index])
+      } else {
+        cursor_mark <- if (is_cursor) "\u276f" else " " # <U+276F>
+        line <- sprintf("%s %s", cursor_mark, choices[choice_index])
+      }
 
-    cat(line, "\n", sep = "")
-    lines <- c(lines, line)
+      # Apply styling
+      if (is_cursor) {
+        line <- cli::col_cyan(line)
+      }
+
+      cat(line, "\n", sep = "")
+      lines <- c(lines, line)
+    }
   }
 
   # Show indicator if there are items below
-  items_below <- n_choices - visible_end
+  items_below <- effective_length - visible_end
   if (items_below > 0) {
     indicator <- cli::col_silver(sprintf("\u2193 %d more below", items_below))
     cat(indicator, "\n", sep = "")
@@ -118,16 +143,36 @@ get_keypress <- function() {
     key <- keypress::keypress()
 
     # Map special keys
-    if (key == "up") return("up")
-    if (key == "down") return("down")
-    if (key == "left") return("left")
-    if (key == "right") return("right")
-    if (key == "\r" || key == "\n") return("enter")
-    if (key == " ") return("space")
-    if (key == "\033" || key == "\x1b") return("esc")
-    if (key == "k") return("up")
-    if (key == "j") return("down")
-    if (tolower(key) == "q") return("esc")
+    if (key == "up") {
+      return("up")
+    }
+    if (key == "down") {
+      return("down")
+    }
+    if (key == "left") {
+      return("left")
+    }
+    if (key == "right") {
+      return("right")
+    }
+    if (key == "\r" || key == "\n") {
+      return("enter")
+    }
+    if (key == " ") {
+      return("space")
+    }
+    if (key == "\033" || key == "\x1b") {
+      return("esc")
+    }
+    if (key == "k") {
+      return("up")
+    }
+    if (key == "j") {
+      return("down")
+    }
+    if (tolower(key) == "q") {
+      return("esc")
+    }
 
     return(key)
   }
@@ -145,11 +190,21 @@ get_keypress <- function() {
   # Map text input to commands
   key <- tolower(trimws(key))
 
-  if (key == "" || key == "enter") return("enter")
-  if (key == " " || key == "space") return("space")
-  if (key == "up" || key == "u" || key == "k") return("up")
-  if (key == "down" || key == "d" || key == "j") return("down")
-  if (key == "esc" || key == "q" || key == "quit") return("esc")
+  if (key == "" || key == "enter") {
+    return("enter")
+  }
+  if (key == " " || key == "space") {
+    return("space")
+  }
+  if (key == "up" || key == "u" || key == "k") {
+    return("up")
+  }
+  if (key == "down" || key == "d" || key == "j") {
+    return("down")
+  }
+  if (key == "esc" || key == "q" || key == "quit") {
+    return("esc")
+  }
 
   # Try to parse as number (for quick selection by index)
   num <- suppressWarnings(as.integer(key))
@@ -176,7 +231,7 @@ clear_lines <- function(n) {
   if (n > 0) {
     for (i in seq_len(n)) {
       move_cursor_up(1)
-      cat("\033[2K")  # Clear entire line
+      cat("\033[2K") # Clear entire line
     }
   }
 }
