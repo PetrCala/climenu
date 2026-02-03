@@ -1,4 +1,4 @@
-# climenu - Interactive CLI Menus for R
+# climenu - Interactive CLI Menus
 
 A lightweight, standalone module for creating interactive command-line menus in R, inspired by:
 
@@ -98,6 +98,7 @@ choices <- checkbox(c("Item 1", "Item 2", "Item 3"))
 ### Without `keypress` (fallback mode)
 
 Type commands and press Enter:
+
 - `k` or `up` - Move up
 - `j` or `down` - Move down
 - `space` - Toggle selection (checkbox only)
@@ -106,6 +107,7 @@ Type commands and press Enter:
 - `q` or `quit` - Cancel
 
 **Install `keypress` for the best experience:**
+
 ```r
 install.packages("keypress")
 ```

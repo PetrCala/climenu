@@ -158,7 +158,7 @@ jobs:
 
           This is a submission of climenu v${VERSION} to CRAN.
 
-          The package provides interactive command-line menu functionality for R,
+          The package provides interactive command-line menu functionality,
           supporting single and multiple selection menus with keyboard navigation.
           EOF
 

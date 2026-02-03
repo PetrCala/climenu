@@ -9,7 +9,8 @@ checkbox(
   prompt = "Select items (Space to toggle, Enter to confirm):",
   selected = NULL,
   return_index = FALSE,
-  max_visible = 10L
+  max_visible = 10L,
+  allow_select_all = FALSE
 )
 }
 \arguments{
@@ -23,28 +24,42 @@ checkbox(
 
 \item{max_visible}{Maximum number of items to display at once (default: 10).
 Set to NULL to show all items.}
+
+\item{allow_select_all}{If \code{TRUE}, adds a "Select all" / "Deselect all" option
+at the top of the menu. When selected, toggles all items at once. The option
+text dynamically changes based on selection state (default: FALSE).}
 }
 \value{
-Selected items as character vector or indices, or NULL if cancelled
+Selected items as character vector or indices, or NULL if cancelled.
+The special "Select all" option is never included in the returned results.
 }
 \description{
 Interactive menu for selecting multiple items from a list.
 Uses arrow keys (or j/k) to navigate, Space to toggle, and Enter to confirm.
+Optionally includes a "Select all" / "Deselect all" option at the top when
+\code{allow_select_all = TRUE}.
 }
 \examples{
-\dontrun{
-toppings <- checkbox(
-  c("Pepperoni", "Mushrooms", "Olives"),
-  prompt = "Select toppings:"
-)
+if (interactive()) {
+  toppings <- checkbox(
+    c("Pepperoni", "Mushrooms", "Olives"),
+    prompt = "Select toppings:"
+  )
 
-# With pre-selection
-options <- checkbox(
-  c("Option A", "Option B", "Option C"),
-  selected = c(1, 3)
-)
+  # With pre-selection
+  options <- checkbox(
+    c("Option A", "Option B", "Option C"),
+    selected = c(1, 3)
+  )
 
-# With scrolling for long lists
-items <- checkbox(1:100, max_visible = 10)
+  # With scrolling for long lists
+  items <- checkbox(1:100, max_visible = 10)
+
+  # With select all feature
+  methods <- checkbox(
+    c("method_a", "method_b", "method_c"),
+    allow_select_all = TRUE,
+    prompt = "Select methods to run:"
+  )
 }
 }

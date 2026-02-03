@@ -32,11 +32,11 @@ Interactive menu for selecting a single item from a list.
 Uses arrow keys (or j/k) to navigate and Enter to select.
 }
 \examples{
-\dontrun{
-choice <- select(c("Yes", "No", "Maybe"))
-index <- select(c("First", "Second", "Third"), return_index = TRUE)
+if (interactive()) {
+  choice <- select(c("Yes", "No", "Maybe"))
+  index <- select(c("First", "Second", "Third"), return_index = TRUE)
 
-# With scrolling for long lists
-choice <- select(1:100, max_visible = 10)
+  # With scrolling for long lists
+  choice <- select(1:100, max_visible = 10)
 }
 }

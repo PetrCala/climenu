@@ -13,16 +13,16 @@
 #' @export
 #'
 #' @examples
-#' \dontrun{
-#' # Single selection
-#' color <- menu(c("Red", "Green", "Blue"), prompt = "Pick a color:")
+#' if (interactive()) {
+#'   # Single selection
+#'   color <- menu(c("Red", "Green", "Blue"), prompt = "Pick a color:")
 #'
-#' # Multiple selection
-#' toppings <- menu(
-#'   c("Pepperoni", "Mushrooms", "Olives"),
-#'   type = "checkbox",
-#'   prompt = "Select toppings:"
-#' )
+#'   # Multiple selection
+#'   toppings <- menu(
+#'     c("Pepperoni", "Mushrooms", "Olives"),
+#'     type = "checkbox",
+#'     prompt = "Select toppings:"
+#'   )
 #' }
 menu <- function(choices,
                  prompt = "Select an item:",

@@ -20,27 +20,27 @@
 #' @export
 #'
 #' @examples
-#' \dontrun{
-#' toppings <- checkbox(
-#'   c("Pepperoni", "Mushrooms", "Olives"),
-#'   prompt = "Select toppings:"
-#' )
+#' if (interactive()) {
+#'   toppings <- checkbox(
+#'     c("Pepperoni", "Mushrooms", "Olives"),
+#'     prompt = "Select toppings:"
+#'   )
 #'
-#' # With pre-selection
-#' options <- checkbox(
-#'   c("Option A", "Option B", "Option C"),
-#'   selected = c(1, 3)
-#' )
+#'   # With pre-selection
+#'   options <- checkbox(
+#'     c("Option A", "Option B", "Option C"),
+#'     selected = c(1, 3)
+#'   )
 #'
-#' # With scrolling for long lists
-#' items <- checkbox(1:100, max_visible = 10)
+#'   # With scrolling for long lists
+#'   items <- checkbox(1:100, max_visible = 10)
 #'
-#' # With select all feature
-#' methods <- checkbox(
-#'   c("method_a", "method_b", "method_c"),
-#'   allow_select_all = TRUE,
-#'   prompt = "Select methods to run:"
-#' )
+#'   # With select all feature
+#'   methods <- checkbox(
+#'     c("method_a", "method_b", "method_c"),
+#'     allow_select_all = TRUE,
+#'     prompt = "Select methods to run:"
+#'   )
 #' }
 checkbox <- function(choices,
                      prompt = "Select items (Space to toggle, Enter to confirm):",

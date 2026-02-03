@@ -14,12 +14,12 @@
 #' @export
 #'
 #' @examples
-#' \dontrun{
-#' choice <- select(c("Yes", "No", "Maybe"))
-#' index <- select(c("First", "Second", "Third"), return_index = TRUE)
+#' if (interactive()) {
+#'   choice <- select(c("Yes", "No", "Maybe"))
+#'   index <- select(c("First", "Second", "Third"), return_index = TRUE)
 #'
-#' # With scrolling for long lists
-#' choice <- select(1:100, max_visible = 10)
+#'   # With scrolling for long lists
+#'   choice <- select(1:100, max_visible = 10)
 #' }
 select <- function(choices,
                    prompt = "Select an item:",
