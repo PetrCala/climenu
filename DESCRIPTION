@@ -7,10 +7,10 @@ Author: Petr Čala [aut, cre]
 Maintainer: Petr Čala <61505008@fsv.cuni.cz>
 Description: Provides interactive command-line menu functionality with
     single and multiple selection menus, keyboard navigation (arrow keys or
-    vi-style j/k), pre-selection, and graceful fallback for non-interactive
+    vi-style j/k), preselection, and graceful fallback for non-interactive
     environments. Inspired by tools such as 'inquirer.js'
     <https://github.com/SBoudrias/Inquirer.js>, 'pick'
-    <https://github.com/wong2/pick>, and 'survey'
+    <https://github.com/aisk/pick>, and 'survey'
     <https://github.com/AlecAivazis/survey>. Designed to be lightweight and
     easy to integrate into 'R' packages and scripts.
 License: MIT + file LICENSE
