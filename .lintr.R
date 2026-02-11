@@ -25,7 +25,9 @@ linters <- lintr::linters_with_defaults(
     )
   ),
   # Check for missing packages in namespace calls
-  namespace_linter = lintr::namespace_linter()
+  namespace_linter = lintr::namespace_linter(),
+  # Allow explicit return() — removing early returns can introduce bugs
+  return_linter = NULL
 )
 
 exclusions <- list(

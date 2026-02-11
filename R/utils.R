@@ -42,7 +42,7 @@ normalize_selected <- function(selected, choices, multiple = FALSE) {
     indices <- indices[1]
   }
 
-  indices
+  return(indices)
 }
 
 #' Render menu display
@@ -131,7 +131,7 @@ render_menu <- function(choices, cursor_pos, selected_indices, type = c("select"
     lines <- c(lines, indicator)
   }
 
-  lines
+  return(lines)
 }
 
 #' Get single keypress from user
@@ -174,7 +174,7 @@ get_keypress <- function() {
       return("esc")
     }
 
-    key
+    return(key)
   }
 
   # Fallback: Use readline (requires Enter key)

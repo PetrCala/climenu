@@ -38,11 +38,12 @@ menu <- function(choices,
       selected = selected,
       return_index = return_index
     ))
+  } else {
+    return(select(
+      choices = choices,
+      prompt = prompt,
+      selected = selected,
+      return_index = return_index
+    ))
   }
-  select(
-    choices = choices,
-    prompt = prompt,
-    selected = selected,
-    return_index = return_index
-  )
 }

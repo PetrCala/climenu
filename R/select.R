@@ -118,6 +118,7 @@ select <- function(choices,
 
   if (return_index) {
     return(cursor_pos)
+  } else {
+    return(choices[cursor_pos])
   }
-  choices[cursor_pos]
 }
