@@ -35,9 +35,8 @@ library(climenu)
 ## Installation
 
 ```{r install, eval=FALSE}
-# Install from GitHub
-# install.packages("remotes")
-remotes::install_github("PetrCala/climenu")
+# Install from CRAN
+install.packages("climenu")
 
 # For optimal keyboard support, also install keypress:
 install.packages("keypress")
@@ -148,6 +147,23 @@ indices <- checkbox(
 ```
 
 This is particularly useful when you need to map selections back to data structures or when the choice labels differ from the underlying values you want to work with.
+
+### Select All / Deselect All
+
+For checkbox menus with many options, you can add a "Select all" toggle at the top of the list:
+
+```{r select-all}
+# Enable the "Select all" option
+methods <- checkbox(
+  choices = c("method_a", "method_b", "method_c", "method_d"),
+  allow_select_all = TRUE,
+  prompt = "Select methods to run:"
+)
+# The first item in the menu will be "Select all" / "Deselect all"
+# It toggles all items at once and is never included in the result
+```
+
+This is handy when users are likely to want most or all items and only need to deselect a few.
 
 ## Keyboard Controls
 
@@ -402,13 +418,18 @@ Main entry point for creating menus.
 
 **Returns:** Selected value(s) as character vector, or indices as integer vector, or `NULL` if cancelled
 
-### `select(choices, prompt, selected, return_index)`
+### `select(choices, prompt, selected, return_index, max_visible)`
 
-Single selection menu. Parameters same as `menu()` but without `type`.
+Single selection menu. Same parameters as `menu()` (without `type`), plus:
 
-### `checkbox(choices, prompt, selected, return_index)`
+- `max_visible`: Maximum items to display at once (default: `10`). Set to `NULL` to show all.
 
-Multiple selection menu. Parameters same as `menu()` but without `type`.
+### `checkbox(choices, prompt, selected, return_index, max_visible, allow_select_all)`
+
+Multiple selection menu. Same parameters as `menu()` (without `type`), plus:
+
+- `max_visible`: Maximum items to display at once (default: `10`). Set to `NULL` to show all.
+- `allow_select_all`: Add a "Select all" / "Deselect all" toggle at the top (default: `FALSE`).
 
 ## Troubleshooting
 

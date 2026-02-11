@@ -30,6 +30,6 @@ linters <- lintr::linters_with_defaults(
 
 exclusions <- list(
   "examples/",
-  "tests/testthat.R",  # Standard testthat setup file uses library() by convention
-  "vignettes/"  # Vignettes contain example code
+  "tests/testthat.R", # Standard testthat setup file uses library() by convention
+  "vignettes/" # Vignettes contain example code
 )

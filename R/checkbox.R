@@ -93,9 +93,8 @@ checkbox <- function(choices,
     all_selected <- length(selected_indices) == n_choices && n_choices > 0
     if (all_selected) {
       return("Deselect all")
-    } else {
-      return("Select all")
     }
+    "Select all"
   }
 
   # Display prompt
@@ -193,7 +192,9 @@ checkbox <- function(choices,
 
   if (return_index) {
     return(sort(selected_indices))
-  } else {
-    return(if (length(selected_indices) > 0) choices[sort(selected_indices)] else character(0))
   }
+  if (length(selected_indices) > 0) {
+    return(choices[sort(selected_indices)])
+  }
+  character(0)
 }

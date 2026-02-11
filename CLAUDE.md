@@ -13,6 +13,8 @@ The package enables R users to create intuitive, keyboard-navigable menus for se
 - **Single selection menus** - Select one item with arrow key navigation
 - **Multiple selection menus** - Checkbox-style interface for selecting multiple items
 - **Keyboard navigation** - Arrow keys (↑/↓) or vi-style (j/k) navigation
+- **Scrollable menus** - Automatic pagination for long lists (`max_visible` parameter)
+- **Select all** - Optional toggle to select/deselect all items at once (`allow_select_all`)
 - **Pre-selection support** - Start with items already selected
 - **Return flexibility** - Return values or indices
 - **Non-interactive fallback** - Works in batch mode with sensible defaults
@@ -26,12 +28,16 @@ climenu/
 │   ├── menu.R             # Main menu interface
 │   ├── select.R           # Single selection implementation
 │   ├── checkbox.R         # Multiple selection implementation
-│   └── utils.R            # Shared utilities
+│   ├── utils.R            # Shared utilities
+│   └── zzz.R             # Package environment setup
 ├── tests/testthat/        # Test suite
+├── vignettes/             # Long-form documentation
 ├── man/                   # Documentation (auto-generated)
 ├── DESCRIPTION            # Package metadata
 ├── NAMESPACE              # Exports (auto-generated)
 ├── README.md              # User-facing documentation
+├── CONTRIBUTING.md        # Contribution guidelines
+├── AGENTS.md              # Repository guidelines
 └── CLAUDE.md              # This file
 ```
 
@@ -98,6 +104,9 @@ R -e "devtools::install()"
 - `keypress` - For true single-keypress capture (highly recommended for best UX)
 - `testthat` (>= 3.0.0) - For testing
 - `roxygen2` (>= 7.0.0) - For documentation
+- `devtools` - For development workflow
+- `covr` - For test coverage reports
+- `knitr`, `rmarkdown` - For vignettes
 
 ## Implementation Notes
 

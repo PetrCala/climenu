@@ -3,7 +3,7 @@
 A lightweight, standalone module for creating interactive command-line menus in R, inspired by:
 
 - [inquirer.js](https://github.com/SBoudrias/Inquirer.js) (JavaScript)
-- [pick](https://github.com/wong2/pick) (Python)
+- [pick](https://github.com/aisk/pick) (Python)
 - [survey](https://github.com/AlecAivazis/survey) (Go)
 
 ## Features
@@ -11,18 +11,18 @@ A lightweight, standalone module for creating interactive command-line menus in 
 - **Single selection** - Select one item from a list
 - **Multiple selection** - Select multiple items with checkboxes
 - **Keyboard navigation** - Arrow keys or vi-style (j/k) navigation
+- **Scrollable menus** - Automatic pagination for long lists
+- **Select all** - Optional toggle to select/deselect all items at once
 - **Pre-selection support** - Start with items already selected
 - **Return flexibility** - Return values or indices
-- **Standalone design** - Can be extracted as its own package
+- **Minimal dependencies** - Only requires the `cli` package
 
 ## Usage
 
 ### Installation
 
 ```r
-# Install from GitHub (until CRAN submission)
-# install.packages("remotes")
-remotes::install_github("PetrCala/climenu")
+install.packages("climenu")
 ```
 
 ### Basic Single Selection
@@ -128,13 +128,18 @@ Main entry point for creating menus.
 
 **Returns:** Selected value(s) or NULL if cancelled
 
-### `select(choices, prompt, selected, return_index)`
+### `select(choices, prompt, selected, return_index, max_visible)`
 
-Single selection menu.
+Single selection menu. Same parameters as `menu()` (without `type`), plus:
 
-### `checkbox(choices, prompt, selected, return_index)`
+- `max_visible` - Maximum items to display at once (default: 10). Set to NULL to show all.
 
-Multiple selection menu with checkboxes.
+### `checkbox(choices, prompt, selected, return_index, max_visible, allow_select_all)`
+
+Multiple selection menu with checkboxes. Same parameters as `menu()` (without `type`), plus:
+
+- `max_visible` - Maximum items to display at once (default: 10). Set to NULL to show all.
+- `allow_select_all` - Add a "Select all" / "Deselect all" toggle at the top (default: FALSE).
 
 ## Development
 
@@ -173,21 +178,16 @@ make all           # Run all quality checks
 
 ## Design Philosophy
 
-This module is designed to be:
-
-1. **Standalone** - Minimal dependencies, can be extracted as its own package
+1. **Lightweight** - Minimal dependencies (only `cli`)
 2. **Intuitive** - Familiar keyboard controls from other CLI tools
-3. **Flexible** - Works with the box module system or as a standalone package
+3. **Flexible** - Works as a standalone package or integrated into other packages
 4. **Robust** - Graceful fallback for non-interactive environments
 
 ## Future Enhancements
 
-Potential additions when extracted as standalone package:
-
 - Autocomplete/search filtering
 - Nested menus
 - Custom styling/themes
-- Pagination for long lists
 - Input validation prompts
 - Password prompts
 - Progress bars
