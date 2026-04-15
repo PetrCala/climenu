@@ -136,80 +136,40 @@ render_menu <- function(choices, cursor_pos, selected_indices, type = c("select"
 
 #' Get single keypress from user
 #' @keywords internal
+#' @importFrom keypress keypress
 #' @noRd
 get_keypress <- function() {
-  # Check for keypress package (best option for single-key capture)
-  if (requireNamespace("keypress", quietly = TRUE)) {
-    key <- keypress::keypress()
+  key <- keypress::keypress()
 
-    # Map special keys
-    if (key == "up") {
-      return("up")
-    }
-    if (key == "down") {
-      return("down")
-    }
-    if (key == "left") {
-      return("left")
-    }
-    if (key == "right") {
-      return("right")
-    }
-    if (key == "\r" || key == "\n") {
-      return("enter")
-    }
-    if (key == " ") {
-      return("space")
-    }
-    if (key == "\033" || key == "\x1b") {
-      return("esc")
-    }
-    if (key == "k") {
-      return("up")
-    }
-    if (key == "j") {
-      return("down")
-    }
-    if (tolower(key) == "q") {
-      return("esc")
-    }
-
-    return(key)
-  }
-
-  # Fallback: Use readline (requires Enter key)
-  # Show hint only once per session
-  env <- get("climenu_env", envir = asNamespace("climenu"))
-  if (!exists(".climenu_keypress_hint_shown", envir = env)) {
-    cli::cli_alert_info("For better keyboard support, install: {.code install.packages('keypress')}")
-    assign(".climenu_keypress_hint_shown", TRUE, envir = env)
-  }
-
-  key <- readline(prompt = "Choice (\u2191/\u2193/j/k/number/Enter): ")
-
-  # Map text input to commands
-  key <- tolower(trimws(key))
-
-  if (key == "" || key == "enter") {
-    return("enter")
-  }
-  if (key == " " || key == "space") {
-    return("space")
-  }
-  if (key == "up" || key == "u" || key == "k") {
+  if (key == "up") {
     return("up")
   }
-  if (key == "down" || key == "d" || key == "j") {
+  if (key == "down") {
     return("down")
   }
-  if (key == "esc" || key == "q" || key == "quit") {
+  if (key == "left") {
+    return("left")
+  }
+  if (key == "right") {
+    return("right")
+  }
+  if (key == "\r" || key == "\n") {
+    return("enter")
+  }
+  if (key == " ") {
+    return("space")
+  }
+  if (key == "\033" || key == "\x1b") {
     return("esc")
   }
-
-  # Try to parse as number (for quick selection by index)
-  num <- suppressWarnings(as.integer(key))
-  if (!is.na(num)) {
-    return(list(type = "number", value = num))
+  if (key == "k") {
+    return("up")
+  }
+  if (key == "j") {
+    return("down")
+  }
+  if (tolower(key) == "q") {
+    return("esc")
   }
 
   key

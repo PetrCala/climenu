@@ -85,8 +85,6 @@ choices <- checkbox(c("Item 1", "Item 2", "Item 3"))
 
 ## Keyboard Controls
 
-### With `keypress` package (recommended)
-
 | Key | Action |
 |-----|--------|
 | ↑ / k | Move up |
@@ -94,23 +92,6 @@ choices <- checkbox(c("Item 1", "Item 2", "Item 3"))
 | Space | Toggle selection (checkbox only) |
 | Enter | Confirm selection |
 | Esc / q | Cancel (returns NULL) |
-
-### Without `keypress` (fallback mode)
-
-Type commands and press Enter:
-
-- `k` or `up` - Move up
-- `j` or `down` - Move down
-- `space` - Toggle selection (checkbox only)
-- `<number>` - Jump to item number
-- `<Enter>` - Confirm selection
-- `q` or `quit` - Cancel
-
-**Install `keypress` for the best experience:**
-
-```r
-install.packages("keypress")
-```
 
 ## API Reference
 

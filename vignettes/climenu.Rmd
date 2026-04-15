@@ -37,9 +37,6 @@ library(climenu)
 ```{r install, eval=FALSE}
 # Install from CRAN
 install.packages("climenu")
-
-# For optimal keyboard support, also install keypress:
-install.packages("keypress")
 ```
 
 ## Basic Usage
@@ -167,10 +164,6 @@ This is handy when users are likely to want most or all items and only need to d
 
 ## Keyboard Controls
 
-### With keypress Package (Recommended)
-
-When the `keypress` package is installed, you get instant keyboard feedback:
-
 | Key | Action |
 |-----|--------|
 | ↑ or k | Move cursor up |
@@ -178,25 +171,6 @@ When the `keypress` package is installed, you get instant keyboard feedback:
 | Space | Toggle selection (checkbox only) |
 | Enter | Confirm selection |
 | Esc or q | Cancel (returns NULL) |
-
-Install it for the best experience:
-
-```{r install-keypress, eval=FALSE}
-install.packages("keypress")
-```
-
-### Without keypress (Fallback Mode)
-
-If `keypress` is not available, `climenu` falls back to `readline()` mode. You'll need to type commands and press Enter:
-
-- `k` or `up` - Move up
-- `j` or `down` - Move down
-- `space` - Toggle selection (checkbox only)
-- `<number>` - Jump directly to item number
-- `<Enter>` - Confirm selection
-- `q` or `quit` - Cancel
-
-`climenu` will show a one-time message suggesting to install `keypress` for better keyboard support.
 
 ## Practical Examples
 
@@ -354,8 +328,6 @@ Add `climenu` to your Imports:
 ```
 Imports:
     climenu
-Suggests:
-    keypress
 ```
 
 ### Using in Package Functions
@@ -398,9 +370,7 @@ configure_analysis <- function() {
 
 5. **Test non-interactive behavior** - Ensure your code works in automated contexts
 
-6. **Recommend keypress** - Consider mentioning in your package README that users should install `keypress` for the best experience
-
-7. **Consider sort order** - Present choices in a logical order (alphabetical, by frequency, by importance)
+6. **Consider sort order** - Present choices in a logical order (alphabetical, by frequency, by importance)
 
 ## API Reference
 
@@ -435,11 +405,7 @@ Multiple selection menu. Same parameters as `menu()` (without `type`), plus:
 
 ### Arrow keys not working
 
-Install the `keypress` package for proper arrow key support:
-
-```{r fix-arrows, eval=FALSE}
-install.packages("keypress")
-```
+`climenu` relies on the `keypress` package (installed automatically) for single-keypress capture. If arrow keys still don't respond, your terminal may not be recognized as interactive — try running from a standard terminal emulator or the RStudio console rather than a non-TTY environment.
 
 ### Menu doesn't display properly
 
