@@ -93,6 +93,8 @@ choices <- checkbox(c("Item 1", "Item 2", "Item 3"))
 | Enter | Confirm selection |
 | Esc / q | Cancel (returns NULL) |
 
+On terminals that don't support single-key input (e.g. RStudio or RGui on Windows), `climenu` falls back to a numbered-prompt mode — type the number of your choice (or comma-separated numbers for checkboxes) and press Enter.
+
 ## API Reference
 
 ### `menu(choices, prompt, type, selected, return_index)`

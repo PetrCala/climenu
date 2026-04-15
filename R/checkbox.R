@@ -77,6 +77,11 @@ checkbox <- function(choices,
     }
   }
 
+  # Fallback for terminals without single-key support (e.g. RStudio/RGui on Windows)
+  if (!keypress_supported()) {
+    return(checkbox_fallback(choices, prompt, selected_indices, return_index, allow_select_all))
+  }
+
   # Initialize window offset for scrolling
   window_offset <- 1L
 
@@ -186,6 +191,92 @@ checkbox <- function(choices,
   cat("\n")
   if (length(selected_indices) > 0) {
     cli::cli_alert_success("Selected {length(selected_indices)} item{?s}: {.val {choices[selected_indices]}}")
+  } else {
+    cli::cli_alert_info("No items selected")
+  }
+
+  if (return_index) {
+    return(sort(selected_indices))
+  }
+  if (length(selected_indices) > 0) {
+    return(choices[sort(selected_indices)])
+  }
+  character(0)
+}
+
+#' Fallback checkbox for terminals without single-key support
+#' @keywords internal
+#' @noRd
+checkbox_fallback <- function(choices, prompt, selected_indices, return_index, allow_select_all) {
+  notify_fallback_once()
+  n_choices <- length(choices)
+
+  cat("\n")
+  cli::cli_text(prompt)
+  cat("\n")
+  for (i in seq_len(n_choices)) {
+    mark <- if (i %in% selected_indices) "[x]" else "[ ]"
+    cat(sprintf("  %d. %s %s\n", i, mark, choices[i]))
+  }
+  cat("\n")
+
+  hint <- "Enter numbers to toggle (e.g. 1,3,5)"
+  if (allow_select_all) {
+    hint <- paste0(hint, ", 'a' to toggle all")
+  }
+  hint <- paste0(hint, ", Enter to confirm, q to cancel: ")
+
+  raw <- read_line(prompt = hint)
+  input <- trimws(raw)
+
+  if (tolower(input) %in% c("q", "quit", "esc")) {
+    cli::cli_alert_info("Selection cancelled")
+    return(NULL)
+  }
+
+  if (nzchar(input)) {
+    tokens <- trimws(strsplit(input, ",", fixed = TRUE)[[1]])
+    tokens <- tokens[nzchar(tokens)]
+
+    out_of_range <- integer(0)
+    invalid <- character(0)
+
+    for (tok in tokens) {
+      if (allow_select_all && tolower(tok) == "a") {
+        all_selected <- length(selected_indices) == n_choices && n_choices > 0
+        selected_indices <- if (all_selected) integer(0) else seq_len(n_choices)
+        next
+      }
+
+      num <- suppressWarnings(as.integer(tok))
+      if (is.na(num)) {
+        invalid <- c(invalid, tok)
+        next
+      }
+      if (num < 1L || num > n_choices) {
+        out_of_range <- c(out_of_range, num)
+        next
+      }
+
+      if (num %in% selected_indices) {
+        selected_indices <- setdiff(selected_indices, num)
+      } else {
+        selected_indices <- c(selected_indices, num)
+      }
+    }
+
+    if (length(invalid) > 0) {
+      cli::cli_alert_warning("Ignored non-numeric token{?s}: {.val {invalid}}")
+    }
+    if (length(out_of_range) > 0) {
+      cli::cli_alert_warning("Ignored out-of-range number{?s}: {.val {out_of_range}}")
+    }
+  }
+
+  if (length(selected_indices) > 0) {
+    cli::cli_alert_success(
+      "Selected {length(selected_indices)} item{?s}: {.val {choices[sort(selected_indices)]}}"
+    )
   } else {
     cli::cli_alert_info("No items selected")
   }

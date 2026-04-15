@@ -172,6 +172,8 @@ This is handy when users are likely to want most or all items and only need to d
 | Enter | Confirm selection |
 | Esc or q | Cancel (returns NULL) |
 
+On terminals that don't support single-key input (e.g. RStudio or RGui on Windows), `climenu` falls back to a numbered-prompt mode — type the number of your choice (or comma-separated numbers for checkboxes) and press Enter.
+
 ## Practical Examples
 
 ### Configuration Wizard
@@ -405,7 +407,7 @@ Multiple selection menu. Same parameters as `menu()` (without `type`), plus:
 
 ### Arrow keys not working
 
-`climenu` relies on the `keypress` package (installed automatically) for single-keypress capture. If arrow keys still don't respond, your terminal may not be recognized as interactive — try running from a standard terminal emulator or the RStudio console rather than a non-TTY environment.
+Single-key input requires a real terminal (e.g. macOS Terminal, iTerm2, Linux terminals, Windows Terminal, Rterm). In RStudio or RGui on Windows, `keypress::keypress()` is not supported — `climenu` detects this automatically and switches to the numbered-prompt fallback described above. Run from a supported terminal if you want live arrow-key navigation.
 
 ### Menu doesn't display properly
 

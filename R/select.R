@@ -41,6 +41,11 @@ select <- function(choices,
     return(if (return_index) 1L else choices[1])
   }
 
+  # Fallback for terminals without single-key support (e.g. RStudio/RGui on Windows)
+  if (!keypress_supported()) {
+    return(select_fallback(choices, prompt, cursor_pos, return_index))
+  }
+
   # Initialize window offset for scrolling
   window_offset <- 1L
 
@@ -121,4 +126,54 @@ select <- function(choices,
   } else {
     return(choices[cursor_pos])
   }
+}
+
+#' Fallback select for terminals without single-key support
+#' @keywords internal
+#' @noRd
+select_fallback <- function(choices, prompt, default_index, return_index) {
+  notify_fallback_once()
+  n_choices <- length(choices)
+
+  cat("\n")
+  cli::cli_text(prompt)
+  cat("\n")
+  for (i in seq_len(n_choices)) {
+    marker <- if (i == default_index) cli::col_silver(" [default]") else ""
+    cat(sprintf("  %d. %s%s\n", i, choices[i], marker))
+  }
+  cat("\n")
+
+  read_choice <- function() {
+    raw <- read_line(prompt = sprintf(
+      "Enter number 1-%d (Enter for default, q to cancel): ", n_choices
+    ))
+    trimws(raw)
+  }
+
+  for (attempt in 1:2) {
+    input <- read_choice()
+
+    if (input == "") {
+      cli::cli_alert_success("Selected: {.val {choices[default_index]}}")
+      return(if (return_index) default_index else choices[default_index])
+    }
+    if (tolower(input) %in% c("q", "quit", "esc")) {
+      cli::cli_alert_info("Selection cancelled")
+      return(NULL)
+    }
+
+    num <- suppressWarnings(as.integer(input))
+    if (!is.na(num) && num >= 1L && num <= n_choices) {
+      cli::cli_alert_success("Selected: {.val {choices[num]}}")
+      return(if (return_index) num else choices[num])
+    }
+
+    if (attempt == 1L) {
+      cli::cli_alert_warning("Invalid input. Please enter a number between 1 and {n_choices}.")
+    }
+  }
+
+  cli::cli_alert_info("Selection cancelled")
+  NULL
 }

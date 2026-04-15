@@ -1,3 +1,36 @@
+climenu_env <- new.env(parent = emptyenv())
+
+#' Wrapper around base `readline` to allow mocking in tests
+#' @keywords internal
+#' @noRd
+read_line <- function(prompt = "") {
+  readline(prompt = prompt)
+}
+
+#' Check whether the current terminal supports single-key input
+#' @keywords internal
+#' @noRd
+keypress_supported <- function() {
+  tryCatch(
+    isTRUE(keypress::has_keypress_support()),
+    error = function(e) FALSE
+  )
+}
+
+#' Emit a one-time info message explaining the fallback
+#' @keywords internal
+#' @noRd
+notify_fallback_once <- function() {
+  if (isTRUE(climenu_env$fallback_notice_shown)) {
+    return(invisible())
+  }
+  cli::cli_alert_info(
+    "Your terminal does not support single-key input (e.g. RStudio or RGui on Windows). Using numbered-prompt mode."
+  )
+  climenu_env$fallback_notice_shown <- TRUE
+  invisible()
+}
+
 #' Validate choices parameter
 #' @keywords internal
 #' @noRd
