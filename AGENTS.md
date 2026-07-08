@@ -38,5 +38,5 @@
 - Ensure `make lint`, `make test`, and `make check` pass; avoid reducing coverage.
 
 ## Configuration Tips
-- Optional dependency: `keypress` enables richer keyboard handling; keep fallbacks intact.
+- Required dependencies: `cli` and `keypress`; keep the numbered-prompt fallbacks intact for environments without single-key or ANSI support.
 - Avoid adding heavyweight dependencies without maintainers’ approval.

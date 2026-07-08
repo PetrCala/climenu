@@ -18,7 +18,7 @@ The package enables R users to create intuitive, keyboard-navigable menus for se
 - **Pre-selection support** - Start with items already selected
 - **Return flexibility** - Return values or indices
 - **Non-interactive fallback** - Works in batch mode with sensible defaults
-- **Minimal dependencies** - Only requires `cli` package
+- **Minimal dependencies** - Only requires the `cli` and `keypress` packages
 
 ## Package Structure
 
@@ -28,8 +28,7 @@ climenu/
 │   ├── menu.R             # Main menu interface
 │   ├── select.R           # Single selection implementation
 │   ├── checkbox.R         # Multiple selection implementation
-│   ├── utils.R            # Shared utilities
-│   └── zzz.R             # Package environment setup
+│   └── utils.R            # Shared utilities
 ├── tests/testthat/        # Test suite
 ├── vignettes/             # Long-form documentation
 ├── man/                   # Documentation (auto-generated)
@@ -98,10 +97,10 @@ R -e "devtools::install()"
 ## Key Dependencies
 
 ### Required
-- `cli` (>= 3.6.0) - For styled terminal output
+- `cli` (>= 3.6.0) - For styled terminal output and capability detection
+- `keypress` (>= 1.0.0) - For true single-keypress capture
 
 ### Suggested
-- `keypress` - For true single-keypress capture (highly recommended for best UX)
 - `testthat` (>= 3.0.0) - For testing
 - `roxygen2` (>= 7.0.0) - For documentation
 - `devtools` - For development workflow
@@ -114,10 +113,10 @@ R -e "devtools::install()"
 
 The package uses two modes for keyboard input:
 
-1. **keypress mode** (best experience) - When the `keypress` package is available, arrow keys and single keypresses work natively
-2. **readline mode** (fallback) - When `keypress` is not available, users type commands and press Enter
+1. **keypress mode** (best experience) - When the terminal supports single-key capture (`keypress::has_keypress_support()`) and ANSI escapes, arrow keys and single keypresses work natively
+2. **numbered-prompt mode** (fallback) - Otherwise (e.g. RStudio console, RGui, non-ANSI terminals), users type numbered commands and press Enter
 
-The `get_keypress()` function in `R/utils.R` handles this detection and fallback automatically.
+`keypress_supported()` and `ansi_supported()` in `R/utils.R` handle this detection; `select()`/`checkbox()` route to the `*_fallback()` functions when either check fails. Note that `keypress::keypress()` returns special keys as named strings ("up", "enter", "escape", ...) — `get_keypress()` maps them to menu actions.
 
 ### Terminal Control
 
@@ -125,7 +124,7 @@ The package uses ANSI escape sequences for terminal manipulation:
 - `\033[<n>A` - Move cursor up n lines
 - `\033[2K` - Clear current line
 
-These sequences work in most modern terminals (macOS Terminal, iTerm2, Linux terminals, Windows Terminal, VSCode terminal).
+These sequences work in most modern terminals (macOS Terminal, iTerm2, Linux terminals, Windows Terminal, VSCode terminal). The live-menu path is only used when `cli::num_ansi_colors() > 1` indicates ANSI support; rendered lines are truncated to the console width so the redraw never miscounts wrapped rows, and Unicode glyphs degrade to ASCII on non-UTF-8 terminals (`cli::is_utf8_output()`).
 
 ### Menu Rendering
 

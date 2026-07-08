@@ -15,7 +15,7 @@ A lightweight, standalone module for creating interactive command-line menus in 
 - **Select all** - Optional toggle to select/deselect all items at once
 - **Pre-selection support** - Start with items already selected
 - **Return flexibility** - Return values or indices
-- **Minimal dependencies** - Only requires the `cli` package
+- **Minimal dependencies** - Only requires the `cli` and `keypress` packages
 
 ## Usage
 
@@ -93,11 +93,11 @@ choices <- checkbox(c("Item 1", "Item 2", "Item 3"))
 | Enter | Confirm selection |
 | Esc / q | Cancel (returns NULL) |
 
-On terminals that don't support single-key input (e.g. RStudio or RGui on Windows), `climenu` falls back to a numbered-prompt mode — type the number of your choice (or comma-separated numbers for checkboxes) and press Enter.
+On terminals that don't support single-key input or ANSI escape sequences (e.g. RStudio or RGui on Windows), `climenu` falls back to a numbered-prompt mode — type the number of your choice (or comma-separated numbers for checkboxes) and press Enter. On non-UTF-8 terminals, ASCII symbols are used instead of Unicode glyphs.
 
 ## API Reference
 
-### `menu(choices, prompt, type, selected, return_index)`
+### `menu(choices, prompt, type, selected, return_index, max_visible, allow_select_all)`
 
 Main entry point for creating menus.
 
@@ -108,6 +108,8 @@ Main entry point for creating menus.
 - `type` - "select" for single, "checkbox" for multiple (default: "select")
 - `selected` - Pre-selected items (indices or values)
 - `return_index` - Return indices instead of values (default: FALSE)
+- `max_visible` - Maximum items to display at once (default: 10). Set to NULL to show all.
+- `allow_select_all` - Add a "Select all" / "Deselect all" toggle at the top; checkbox type only (default: FALSE).
 
 **Returns:** Selected value(s) or NULL if cancelled
 
@@ -161,7 +163,7 @@ make all           # Run all quality checks
 
 ## Design Philosophy
 
-1. **Lightweight** - Minimal dependencies (only `cli`)
+1. **Lightweight** - Minimal dependencies (only `cli` and `keypress`)
 2. **Intuitive** - Familiar keyboard controls from other CLI tools
 3. **Flexible** - Works as a standalone package or integrated into other packages
 4. **Robust** - Graceful fallback for non-interactive environments
