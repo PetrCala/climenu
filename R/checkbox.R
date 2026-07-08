@@ -50,6 +50,7 @@ checkbox <- function(choices,
                      allow_select_all = FALSE) {
   # Validate inputs
   validate_choices(choices)
+  validate_max_visible(max_visible)
   if (!is.logical(allow_select_all) || length(allow_select_all) != 1 || is.na(allow_select_all)) {
     cli::cli_abort("allow_select_all must be a single logical value")
   }
@@ -77,8 +78,9 @@ checkbox <- function(choices,
     }
   }
 
-  # Fallback for terminals without single-key support (e.g. RStudio/RGui on Windows)
-  if (!keypress_supported()) {
+  # Fallback for terminals without single-key support (e.g. RStudio/RGui on
+  # Windows) or without ANSI escape support (needed to redraw the menu)
+  if (!keypress_supported() || !ansi_supported()) {
     return(checkbox_fallback(choices, prompt, selected_indices, return_index, allow_select_all))
   }
 
@@ -129,8 +131,8 @@ checkbox <- function(choices,
     # Clear previous menu
     clear_lines(n_lines)
 
-    # Handle key press
-    if (key %in% c("up", "k")) {
+    # Handle key press (j/k are already mapped to up/down in get_keypress)
+    if (key == "up") {
       cursor_pos <- if (cursor_pos > 1) cursor_pos - 1L else effective_length
 
       # Adjust window if cursor moved outside visible range
@@ -143,7 +145,7 @@ checkbox <- function(choices,
           window_offset <- max(1L, effective_length - max_visible + 1L)
         }
       }
-    } else if (key %in% c("down", "j")) {
+    } else if (key == "down") {
       cursor_pos <- if (cursor_pos < effective_length) cursor_pos + 1L else 1L
 
       # Adjust window if cursor moved outside visible range

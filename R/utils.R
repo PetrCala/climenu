@@ -17,6 +17,17 @@ keypress_supported <- function() {
   )
 }
 
+#' Check whether the current terminal understands ANSI escape sequences
+#'
+#' Keypress support and ANSI support are independent: legacy Windows
+#' consoles can read single keys yet print escape sequences literally.
+#' Color support implies working VT processing, so use cli's detection.
+#' @keywords internal
+#' @noRd
+ansi_supported <- function() {
+  isTRUE(cli::num_ansi_colors() > 1L)
+}
+
 #' Emit a one-time info message explaining the fallback
 #' @keywords internal
 #' @noRd
@@ -25,7 +36,7 @@ notify_fallback_once <- function() {
     return(invisible())
   }
   cli::cli_alert_info(
-    "Your terminal does not support single-key input (e.g. RStudio or RGui on Windows). Using numbered-prompt mode."
+    "Your terminal does not support live menus (single-key input and ANSI escapes, e.g. RStudio or RGui on Windows). Using numbered-prompt mode."
   )
   climenu_env$fallback_notice_shown <- TRUE
   invisible()
@@ -44,6 +55,20 @@ validate_choices <- function(choices) {
   if (any(is.na(choices))) {
     cli::cli_abort("choices must not contain NA values")
   }
+}
+
+#' Validate max_visible parameter
+#' @keywords internal
+#' @noRd
+validate_max_visible <- function(max_visible) {
+  if (is.null(max_visible)) {
+    return(invisible())
+  }
+  if (!is.numeric(max_visible) || length(max_visible) != 1 ||
+        is.na(max_visible) || max_visible < 1) {
+    cli::cli_abort("max_visible must be NULL or a single number >= 1")
+  }
+  invisible()
 }
 
 #' Normalize selected parameter to indices
@@ -78,6 +103,29 @@ normalize_selected <- function(selected, choices, multiple = FALSE) {
   return(indices)
 }
 
+#' Menu glyphs, with ASCII fallbacks for non-UTF-8 terminals
+#' @keywords internal
+#' @noRd
+menu_symbols <- function() {
+  if (cli::is_utf8_output()) {
+    list(
+      pointer = "\u276f", # <U+276F>
+      checkbox_on = "\u2611", # <U+2611>
+      checkbox_off = "\u2610", # <U+2610>
+      arrow_up = "\u2191", # <U+2191>
+      arrow_down = "\u2193" # <U+2193>
+    )
+  } else {
+    list(
+      pointer = ">",
+      checkbox_on = "[x]",
+      checkbox_off = "[ ]",
+      arrow_up = "^",
+      arrow_down = "v"
+    )
+  }
+}
+
 #' Render menu display
 #' @keywords internal
 #' @noRd
@@ -85,6 +133,11 @@ render_menu <- function(choices, cursor_pos, selected_indices, type = c("select"
                         window_offset = 1L, max_visible = NULL, allow_select_all = FALSE,
                         select_all_text = NULL) {
   type <- match.arg(type)
+
+  syms <- menu_symbols()
+  # Truncate to the terminal width so each menu entry occupies exactly one
+  # physical row; wrapped rows would break the cursor-up redraw in clear_lines()
+  width <- cli::console_width()
 
   n_choices <- length(choices)
   effective_length <- if (allow_select_all) n_choices + 1L else n_choices
@@ -102,22 +155,26 @@ render_menu <- function(choices, cursor_pos, selected_indices, type = c("select"
   # Track lines for clearing later
   lines <- character(0)
 
+  emit_line <- function(line) {
+    line <- cli::ansi_strtrim(line, width)
+    cat(line, "\n", sep = "")
+    line
+  }
+
   # Show indicator if there are items above
   items_above <- visible_start - 1L
   if (items_above > 0) {
-    indicator <- cli::col_silver(sprintf("\u2191 %d more above", items_above))
-    cat(indicator, "\n", sep = "")
-    lines <- c(lines, indicator)
+    indicator <- cli::col_silver(sprintf("%s %d more above", syms$arrow_up, items_above))
+    lines <- c(lines, emit_line(indicator))
   }
 
   # Render visible items
   for (pos in visible_start:visible_end) {
     is_cursor <- pos == cursor_pos
+    cursor_mark <- if (is_cursor) syms$pointer else " "
 
     # Handle special select all option at position 1
     if (allow_select_all && pos == 1L) {
-      # Render the special "Select all" / "Deselect all" option
-      cursor_mark <- if (is_cursor) "\u276f" else " " # <U+276F>
       # Special option doesn't have a checkbox, just text
       line <- sprintf("%s   %s", cursor_mark, select_all_text)
 
@@ -129,8 +186,7 @@ render_menu <- function(choices, cursor_pos, selected_indices, type = c("select"
         line <- cli::col_silver(line)
       }
 
-      cat(line, "\n", sep = "")
-      lines <- c(lines, line)
+      lines <- c(lines, emit_line(line))
     } else {
       # Render normal choice item
       # Map position to choice index (position 2 = index 1, etc.)
@@ -138,11 +194,9 @@ render_menu <- function(choices, cursor_pos, selected_indices, type = c("select"
       is_selected <- choice_index %in% selected_indices
 
       if (type == "checkbox") {
-        checkbox_mark <- if (is_selected) "\u2611" else "\u2610" # <U+2611> or <U+2610>
-        cursor_mark <- if (is_cursor) "\u276f" else " " # <U+276F>
+        checkbox_mark <- if (is_selected) syms$checkbox_on else syms$checkbox_off
         line <- sprintf("%s %s %s", cursor_mark, checkbox_mark, choices[choice_index])
       } else {
-        cursor_mark <- if (is_cursor) "\u276f" else " " # <U+276F>
         line <- sprintf("%s %s", cursor_mark, choices[choice_index])
       }
 
@@ -151,57 +205,41 @@ render_menu <- function(choices, cursor_pos, selected_indices, type = c("select"
         line <- cli::col_cyan(line)
       }
 
-      cat(line, "\n", sep = "")
-      lines <- c(lines, line)
+      lines <- c(lines, emit_line(line))
     }
   }
 
   # Show indicator if there are items below
   items_below <- effective_length - visible_end
   if (items_below > 0) {
-    indicator <- cli::col_silver(sprintf("\u2193 %d more below", items_below))
-    cat(indicator, "\n", sep = "")
-    lines <- c(lines, indicator)
+    indicator <- cli::col_silver(sprintf("%s %d more below", syms$arrow_down, items_below))
+    lines <- c(lines, emit_line(indicator))
   }
 
   return(lines)
 }
 
 #' Get single keypress from user
+#'
+#' keypress::keypress() returns special keys as named strings ("up",
+#' "down", "enter", "escape", ...) on every platform; regular keys come
+#' back as the character itself (space is " ").
 #' @keywords internal
 #' @importFrom keypress keypress
 #' @noRd
 get_keypress <- function() {
   key <- keypress::keypress()
 
-  if (key == "up") {
+  if (key %in% c("up", "k")) {
     return("up")
   }
-  if (key == "down") {
+  if (key %in% c("down", "j")) {
     return("down")
-  }
-  if (key == "left") {
-    return("left")
-  }
-  if (key == "right") {
-    return("right")
-  }
-  if (key == "\r" || key == "\n") {
-    return("enter")
   }
   if (key == " ") {
     return("space")
   }
-  if (key == "\033" || key == "\x1b") {
-    return("esc")
-  }
-  if (key == "k") {
-    return("up")
-  }
-  if (key == "j") {
-    return("down")
-  }
-  if (tolower(key) == "q") {
+  if (key == "escape" || tolower(key) == "q") {
     return("esc")
   }
 

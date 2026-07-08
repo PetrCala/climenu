@@ -28,6 +28,7 @@ select <- function(choices,
                    max_visible = 10L) {
   # Validate inputs
   validate_choices(choices)
+  validate_max_visible(max_visible)
 
   # Determine initial cursor position
   cursor_pos <- normalize_selected(selected, choices, multiple = FALSE)
@@ -37,12 +38,13 @@ select <- function(choices,
 
   # Check if running in interactive mode
   if (!interactive()) {
-    cli::cli_warn("Not running in interactive mode. Returning first choice.")
-    return(if (return_index) 1L else choices[1])
+    cli::cli_warn("Not running in interactive mode. Returning the default choice.")
+    return(if (return_index) cursor_pos else choices[cursor_pos])
   }
 
-  # Fallback for terminals without single-key support (e.g. RStudio/RGui on Windows)
-  if (!keypress_supported()) {
+  # Fallback for terminals without single-key support (e.g. RStudio/RGui on
+  # Windows) or without ANSI escape support (needed to redraw the menu)
+  if (!keypress_supported() || !ansi_supported()) {
     return(select_fallback(choices, prompt, cursor_pos, return_index))
   }
 
@@ -81,8 +83,8 @@ select <- function(choices,
     # Clear previous menu
     clear_lines(n_lines)
 
-    # Handle key press
-    if (key %in% c("up", "k")) {
+    # Handle key press (j/k are already mapped to up/down in get_keypress)
+    if (key == "up") {
       cursor_pos <- if (cursor_pos > 1) cursor_pos - 1L else n_choices
 
       # Adjust window if cursor moved outside visible range
@@ -95,7 +97,7 @@ select <- function(choices,
           window_offset <- max(1L, n_choices - max_visible + 1L)
         }
       }
-    } else if (key %in% c("down", "j")) {
+    } else if (key == "down") {
       cursor_pos <- if (cursor_pos < n_choices) cursor_pos + 1L else 1L
 
       # Adjust window if cursor moved outside visible range

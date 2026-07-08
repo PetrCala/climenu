@@ -9,7 +9,9 @@ menu(
   prompt = "Select an item:",
   type = c("select", "checkbox"),
   selected = NULL,
-  return_index = FALSE
+  return_index = FALSE,
+  max_visible = 10L,
+  allow_select_all = FALSE
 )
 }
 \arguments{
@@ -22,6 +24,13 @@ menu(
 \item{selected}{Pre-selected items (indices or values)}
 
 \item{return_index}{Return indices instead of values (default: FALSE)}
+
+\item{max_visible}{Maximum number of items to display at once (default: 10).
+Set to NULL to show all items.}
+
+\item{allow_select_all}{If \code{TRUE}, adds a "Select all" / "Deselect all"
+option at the top of the menu. Only used when \code{type = "checkbox"}
+(default: FALSE).}
 }
 \value{
 Selected item(s) as character vector or indices, or NULL if cancelled

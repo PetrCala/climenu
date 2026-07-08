@@ -68,6 +68,59 @@ test_that("select returns NULL in non-interactive mode", {
   expect_equal(result, "Option 1")
 })
 
+test_that("select honors preselected default in non-interactive mode", {
+  choices <- c("Option 1", "Option 2", "Option 3")
+
+  expect_warning(
+    result <- climenu::select(choices, selected = 2),
+    "Not running in interactive mode"
+  )
+  expect_equal(result, "Option 2")
+
+  expect_warning(
+    result <- climenu::select(choices, selected = "Option 3", return_index = TRUE),
+    "Not running in interactive mode"
+  )
+  expect_equal(result, 3L)
+})
+
+test_that("max_visible is validated", {
+  choices <- c("A", "B", "C")
+
+  expect_error(climenu::select(choices, max_visible = 0), "max_visible")
+  expect_error(climenu::select(choices, max_visible = -1), "max_visible")
+  expect_error(climenu::checkbox(choices, max_visible = NA), "max_visible")
+  expect_error(climenu::checkbox(choices, max_visible = c(1, 2)), "max_visible")
+
+  # NULL is allowed (show all items)
+  expect_warning(
+    result <- climenu::select(choices, max_visible = NULL),
+    "Not running in interactive mode"
+  )
+  expect_equal(result, "A")
+})
+
+test_that("menu forwards max_visible and allow_select_all", {
+  choices <- c("A", "B", "C")
+
+  expect_error(climenu::menu(choices, max_visible = 0), "max_visible")
+  expect_error(
+    climenu::menu(choices, type = "checkbox", allow_select_all = "yes"),
+    "allow_select_all"
+  )
+
+  expect_warning(
+    result <- climenu::menu(
+      choices,
+      type = "checkbox",
+      selected = c(1, 3),
+      allow_select_all = TRUE
+    ),
+    "Not running in interactive mode"
+  )
+  expect_equal(result, c("A", "C"))
+})
+
 test_that("checkbox returns NULL in non-interactive mode", {
   choices <- c("Option 1", "Option 2", "Option 3")
 
@@ -113,6 +166,42 @@ test_that("render_menu creates correct output", {
 
   expect_length(lines, 3)
   expect_length(output, 3)
+})
+
+test_that("render_menu falls back to ASCII symbols on non-UTF-8 output", {
+  testthat::local_mocked_bindings(
+    is_utf8_output = function(...) FALSE,
+    .package = "cli"
+  )
+
+  output <- capture.output(
+    lines <- climenu:::render_menu(
+      c("A", "B"),
+      cursor_pos = 1, selected_indices = 2L, type = "checkbox"
+    )
+  )
+
+  expect_true(any(grepl("[x]", lines, fixed = TRUE)))
+  expect_true(any(grepl(">", lines, fixed = TRUE)))
+  expect_false(any(grepl("\u2611", lines, fixed = TRUE)))
+  expect_false(any(grepl("\u276f", lines, fixed = TRUE)))
+})
+
+test_that("render_menu truncates lines wider than the console", {
+  testthat::local_mocked_bindings(
+    console_width = function(...) 10L,
+    .package = "cli"
+  )
+
+  long_choice <- paste(rep("x", 50), collapse = "")
+  output <- capture.output(
+    lines <- climenu:::render_menu(
+      c(long_choice),
+      cursor_pos = 1, selected_indices = NULL, type = "select"
+    )
+  )
+
+  expect_true(all(cli::ansi_nchar(lines) <= 10))
 })
 
 test_that("checkbox handles empty selection", {
