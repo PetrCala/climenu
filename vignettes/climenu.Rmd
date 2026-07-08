@@ -407,7 +407,7 @@ Multiple selection menu. Same parameters as `menu()` (without `type`), plus:
 
 ### Arrow keys not working
 
-Single-key input requires a real terminal (e.g. macOS Terminal, iTerm2, Linux terminals, Windows Terminal, Rterm). In RStudio or RGui on Windows, `keypress::keypress()` is not supported — `climenu` detects this automatically and switches to the numbered-prompt fallback described above. Run from a supported terminal if you want live arrow-key navigation.
+Live menus require a real terminal (e.g. macOS Terminal, iTerm2, Linux terminals, Windows Terminal, Rterm) with both single-key input and ANSI escape support. In RStudio or RGui on Windows, `keypress::keypress()` is not supported, and some consoles cannot process ANSI escapes — `climenu` detects both cases automatically and switches to the numbered-prompt fallback described above. Run from a supported terminal if you want live arrow-key navigation.
 
 ### Menu doesn't display properly
 
