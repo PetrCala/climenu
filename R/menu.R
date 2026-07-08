@@ -8,6 +8,11 @@
 #' @param type Menu type: "select" (single) or "checkbox" (multiple) (default: "select")
 #' @param selected Pre-selected items (indices or values)
 #' @param return_index Return indices instead of values (default: FALSE)
+#' @param max_visible Maximum number of items to display at once (default: 10).
+#'   Set to NULL to show all items.
+#' @param allow_select_all If `TRUE`, adds a "Select all" / "Deselect all"
+#'   option at the top of the menu. Only used when `type = "checkbox"`
+#'   (default: FALSE).
 #'
 #' @return Selected item(s) as character vector or indices, or NULL if cancelled
 #' @export
@@ -28,7 +33,9 @@ menu <- function(choices,
                  prompt = "Select an item:",
                  type = c("select", "checkbox"),
                  selected = NULL,
-                 return_index = FALSE) {
+                 return_index = FALSE,
+                 max_visible = 10L,
+                 allow_select_all = FALSE) {
   type <- match.arg(type)
 
   if (type == "checkbox") {
@@ -36,14 +43,17 @@ menu <- function(choices,
       choices = choices,
       prompt = prompt,
       selected = selected,
-      return_index = return_index
+      return_index = return_index,
+      max_visible = max_visible,
+      allow_select_all = allow_select_all
     ))
   } else {
     return(select(
       choices = choices,
       prompt = prompt,
       selected = selected,
-      return_index = return_index
+      return_index = return_index,
+      max_visible = max_visible
     ))
   }
 }

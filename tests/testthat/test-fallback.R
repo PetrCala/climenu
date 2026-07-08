@@ -22,6 +22,43 @@ test_that("keypress_supported returns TRUE when has_keypress_support is TRUE", {
   expect_true(climenu:::keypress_supported())
 })
 
+test_that("ansi_supported reflects cli color detection", {
+  testthat::local_mocked_bindings(
+    num_ansi_colors = function(...) 1L,
+    .package = "cli"
+  )
+  expect_false(climenu:::ansi_supported())
+
+  testthat::local_mocked_bindings(
+    num_ansi_colors = function(...) 256L,
+    .package = "cli"
+  )
+  expect_true(climenu:::ansi_supported())
+})
+
+test_that("get_keypress maps keypress return values to menu actions", {
+  get_mapped_key <- function(raw) {
+    testthat::with_mocked_bindings(
+      climenu:::get_keypress(),
+      keypress = function(...) raw,
+      .package = "keypress"
+    )
+  }
+
+  # keypress::keypress() returns special keys as named strings
+  expect_equal(get_mapped_key("escape"), "esc")
+  expect_equal(get_mapped_key("enter"), "enter")
+  expect_equal(get_mapped_key("up"), "up")
+  expect_equal(get_mapped_key("down"), "down")
+  # Regular keys come back as the character itself
+  expect_equal(get_mapped_key(" "), "space")
+  expect_equal(get_mapped_key("k"), "up")
+  expect_equal(get_mapped_key("j"), "down")
+  expect_equal(get_mapped_key("q"), "esc")
+  expect_equal(get_mapped_key("Q"), "esc")
+  expect_equal(get_mapped_key("x"), "x")
+})
+
 test_that("select_fallback returns chosen value for valid number", {
   testthat::local_mocked_bindings(read_line = function(prompt = "") "2")
   choices <- c("a", "b", "c")
