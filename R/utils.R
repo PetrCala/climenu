@@ -311,9 +311,10 @@ render_menu <- function(choices, cursor_pos, selected_indices, type = c("select"
 #'
 #' keypress::keypress() returns special keys as named strings ("up",
 #' "down", "enter", "escape", ...) on every platform; regular keys come
-#' back as the character itself (space is " ").
+#' back as the character itself (space is " "). The call stays
+#' namespace-qualified (no importFrom): the `::` lookup is live, which is
+#' what lets tests mock keypress in its own namespace.
 #' @keywords internal
-#' @importFrom keypress keypress
 #' @noRd
 get_keypress <- function() {
   key <- keypress::keypress()
