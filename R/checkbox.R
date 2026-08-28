@@ -5,18 +5,30 @@
 #' Optionally includes a "Select all" / "Deselect all" option at the top when
 #' `allow_select_all = TRUE`.
 #'
-#' @param choices Character vector of choices to display
+#' @param choices Character vector of choices to display. When the vector is
+#'   named, the names are the labels shown in the menu and the (unnamed) values
+#'   are what gets returned, separating display text from stable return
+#'   values. Unnamed vectors are displayed and returned as-is.
 #' @param prompt Prompt message to display
-#' @param selected Pre-selected items (indices or values)
+#' @param selected Pre-selected items (indices or values). Character values
+#'   match the returned values first, then the displayed labels.
 #' @param return_index Return indices instead of values (default: FALSE)
 #' @param max_visible Maximum number of items to display at once (default: 10).
 #'   Set to NULL to show all items.
 #' @param allow_select_all If `TRUE`, adds a "Select all" / "Deselect all" option
 #'   at the top of the menu. When selected, toggles all items at once. The option
 #'   text dynamically changes based on selection state (default: FALSE).
+#' @param descriptions Optional character vector with one entry per choice,
+#'   rendered dim after each label as an aligned second column. Display-only:
+#'   descriptions are never echoed or returned, and an empty string renders
+#'   nothing for that item (default: NULL).
+#' @param echo Print the confirmation summary after a completed selection
+#'   (default: TRUE). Cancellation notices print regardless.
 #'
 #' @return Selected items as character vector or indices, or NULL if cancelled.
-#'   The special "Select all" option is never included in the returned results.
+#'   For named `choices` the unnamed values are returned, not the displayed
+#'   labels. The special "Select all" option is never included in the returned
+#'   results.
 #' @export
 #'
 #' @examples
@@ -32,8 +44,11 @@
 #'     selected = c(1, 3)
 #'   )
 #'
+#'   # Labels differ from the returned values
+#'   methods <- checkbox(c("Linear tests" = "linear_tests", "BMA" = "bma"))
+#'
 #'   # With scrolling for long lists
-#'   items <- checkbox(1:100, max_visible = 10)
+#'   items <- checkbox(as.character(1:100), max_visible = 10)
 #'
 #'   # With select all feature
 #'   methods <- checkbox(
@@ -47,13 +62,19 @@ checkbox <- function(choices,
                      selected = NULL,
                      return_index = FALSE,
                      max_visible = 10L,
-                     allow_select_all = FALSE) {
+                     allow_select_all = FALSE,
+                     descriptions = NULL,
+                     echo = TRUE) {
   # Validate inputs
   validate_choices(choices)
   validate_max_visible(max_visible)
-  if (!is.logical(allow_select_all) || length(allow_select_all) != 1 || is.na(allow_select_all)) {
-    cli::cli_abort("allow_select_all must be a single logical value")
-  }
+  validate_descriptions(descriptions, choices)
+  validate_flag(allow_select_all, "allow_select_all")
+  validate_flag(echo, "echo")
+
+  parts <- resolve_choices(choices)
+  labels <- parts$labels
+  values <- parts$values
 
   # Initialize selected items
   selected_indices <- normalize_selected(selected, choices, multiple = TRUE)
@@ -74,14 +95,17 @@ checkbox <- function(choices,
     if (return_index) {
       return(result)
     } else {
-      return(if (length(result) > 0) choices[result] else character(0))
+      return(if (length(result) > 0) values[result] else character(0))
     }
   }
 
   # Fallback for terminals without single-key support (e.g. RStudio/RGui on
   # Windows) or without ANSI escape support (needed to redraw the menu)
   if (!keypress_supported() || !ansi_supported()) {
-    return(checkbox_fallback(choices, prompt, selected_indices, return_index, allow_select_all))
+    return(checkbox_fallback(
+      labels, values, prompt, selected_indices, return_index, allow_select_all,
+      descriptions, echo
+    ))
   }
 
   # Initialize window offset for scrolling
@@ -113,14 +137,15 @@ checkbox <- function(choices,
   repeat {
     # Render menu
     menu_lines <- render_menu(
-      choices = choices,
+      choices = labels,
       cursor_pos = cursor_pos,
       selected_indices = selected_indices,
       type = "checkbox",
       window_offset = window_offset,
       max_visible = max_visible,
       allow_select_all = allow_select_all,
-      select_all_text = if (allow_select_all) get_select_all_text() else NULL
+      select_all_text = if (allow_select_all) get_select_all_text() else NULL,
+      descriptions = descriptions
     )
 
     n_lines <- length(menu_lines)
@@ -191,34 +216,53 @@ checkbox <- function(choices,
   }
 
   cat("\n")
-  if (length(selected_indices) > 0) {
-    cli::cli_alert_success("Selected {length(selected_indices)} item{?s}: {.val {choices[selected_indices]}}")
-  } else {
-    cli::cli_alert_info("No items selected")
-  }
+  echo_checkbox_summary(labels, selected_indices, echo)
 
   if (return_index) {
     return(sort(selected_indices))
   }
   if (length(selected_indices) > 0) {
-    return(choices[sort(selected_indices)])
+    return(values[sort(selected_indices)])
   }
   character(0)
+}
+
+#' Echo the confirmation summary of a completed checkbox selection
+#'
+#' Echoes the plain labels: labels may carry ANSI styling, and inline classes
+#' like {.val} would escape those bytes into literal "\033" text.
+#' @keywords internal
+#' @noRd
+echo_checkbox_summary <- function(labels, selected_indices, echo) {
+  if (!echo) {
+    return(invisible())
+  }
+  if (length(selected_indices) > 0) {
+    cli::cli_alert_success(
+      "Selected {length(selected_indices)} item{?s}: {.strong {cli::ansi_strip(labels[sort(selected_indices)])}}"
+    )
+  } else {
+    cli::cli_alert_info("No items selected")
+  }
+  invisible()
 }
 
 #' Fallback checkbox for terminals without single-key support
 #' @keywords internal
 #' @noRd
-checkbox_fallback <- function(choices, prompt, selected_indices, return_index, allow_select_all) {
+checkbox_fallback <- function(labels, values, prompt, selected_indices, return_index,
+                              allow_select_all, descriptions = NULL, echo = TRUE) {
   notify_fallback_once()
-  n_choices <- length(choices)
+  n_choices <- length(labels)
+  width <- cli::console_width()
+  rows <- compose_menu_rows(labels, descriptions)
 
   cat("\n")
   cli::cli_text(prompt)
   cat("\n")
   for (i in seq_len(n_choices)) {
     mark <- if (i %in% selected_indices) "[x]" else "[ ]"
-    cat(sprintf("  %d. %s %s\n", i, mark, choices[i]))
+    cat(cli::ansi_strtrim(sprintf("  %d. %s %s", i, mark, rows[i]), width), "\n", sep = "")
   }
   cat("\n")
 
@@ -275,19 +319,13 @@ checkbox_fallback <- function(choices, prompt, selected_indices, return_index, a
     }
   }
 
-  if (length(selected_indices) > 0) {
-    cli::cli_alert_success(
-      "Selected {length(selected_indices)} item{?s}: {.val {choices[sort(selected_indices)]}}"
-    )
-  } else {
-    cli::cli_alert_info("No items selected")
-  }
+  echo_checkbox_summary(labels, selected_indices, echo)
 
   if (return_index) {
     return(sort(selected_indices))
   }
   if (length(selected_indices) > 0) {
-    return(choices[sort(selected_indices)])
+    return(values[sort(selected_indices)])
   }
   character(0)
 }

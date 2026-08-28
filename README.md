@@ -13,6 +13,8 @@ A lightweight, standalone module for creating interactive command-line menus in 
 - **Keyboard navigation** - Arrow keys or vi-style (j/k) navigation
 - **Scrollable menus** - Automatic pagination for long lists
 - **Select all** - Optional toggle to select/deselect all items at once
+- **Labels vs values** - Named choices display the names and return the values
+- **Dim descriptions** - Optional aligned description column per choice
 - **Pre-selection support** - Start with items already selected
 - **Return flexibility** - Return values or indices
 - **Minimal dependencies** - Only requires the `cli` and `keypress` packages
@@ -71,6 +73,20 @@ selected <- checkbox(
 # Returns: c(1, 2, 3) if user adds Option B
 ```
 
+### Labels, Values, and Descriptions
+
+```r
+# Named choices: the names are displayed, the values are returned
+action <- select(c("Run methods" = "run", "Quit" = "quit"))
+# Menu shows "Run methods" / "Quit"; returns "run" or "quit"
+
+# Dim, aligned descriptions after each label (display-only)
+screen <- select(
+  c("Studies", "Columns"),
+  descriptions = c("per-study estimate counts", "role and type per column")
+)
+```
+
 ### Direct Function Calls
 
 ```r
@@ -97,29 +113,31 @@ On terminals that don't support single-key input or ANSI escape sequences (e.g. 
 
 ## API Reference
 
-### `menu(choices, prompt, type, selected, return_index, max_visible, allow_select_all)`
+### `menu(choices, prompt, type, selected, return_index, max_visible, allow_select_all, descriptions, echo)`
 
 Main entry point for creating menus.
 
 **Parameters:**
 
-- `choices` - Character vector of options
+- `choices` - Character vector of options. When named, the names are the displayed labels and the values are returned.
 - `prompt` - Message to display (default: "Select an item:")
 - `type` - "select" for single, "checkbox" for multiple (default: "select")
 - `selected` - Pre-selected items (indices or values)
 - `return_index` - Return indices instead of values (default: FALSE)
 - `max_visible` - Maximum items to display at once (default: 10). Set to NULL to show all.
 - `allow_select_all` - Add a "Select all" / "Deselect all" toggle at the top; checkbox type only (default: FALSE).
+- `descriptions` - Optional per-choice character vector rendered dim after each label; display-only (default: NULL).
+- `echo` - Print the confirmation line after a completed selection (default: TRUE).
 
 **Returns:** Selected value(s) or NULL if cancelled
 
-### `select(choices, prompt, selected, return_index, max_visible)`
+### `select(choices, prompt, selected, return_index, max_visible, descriptions, echo)`
 
 Single selection menu. Same parameters as `menu()` (without `type`), plus:
 
 - `max_visible` - Maximum items to display at once (default: 10). Set to NULL to show all.
 
-### `checkbox(choices, prompt, selected, return_index, max_visible, allow_select_all)`
+### `checkbox(choices, prompt, selected, return_index, max_visible, allow_select_all, descriptions, echo)`
 
 Multiple selection menu with checkboxes. Same parameters as `menu()` (without `type`), plus:
 

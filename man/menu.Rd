@@ -11,17 +11,23 @@ menu(
   selected = NULL,
   return_index = FALSE,
   max_visible = 10L,
-  allow_select_all = FALSE
+  allow_select_all = FALSE,
+  descriptions = NULL,
+  echo = TRUE
 )
 }
 \arguments{
-\item{choices}{Character vector of choices to display}
+\item{choices}{Character vector of choices to display. When the vector is
+named, the names are the labels shown in the menu and the (unnamed) values
+are what gets returned, separating display text from stable return
+values. Unnamed vectors are displayed and returned as-is.}
 
 \item{prompt}{Prompt message to display (default: "Select an item:")}
 
 \item{type}{Menu type: "select" (single) or "checkbox" (multiple) (default: "select")}
 
-\item{selected}{Pre-selected items (indices or values)}
+\item{selected}{Pre-selected items (indices or values). Character values
+match the returned values first, then the displayed labels.}
 
 \item{return_index}{Return indices instead of values (default: FALSE)}
 
@@ -31,9 +37,19 @@ Set to NULL to show all items.}
 \item{allow_select_all}{If \code{TRUE}, adds a "Select all" / "Deselect all"
 option at the top of the menu. Only used when \code{type = "checkbox"}
 (default: FALSE).}
+
+\item{descriptions}{Optional character vector with one entry per choice,
+rendered dim after each label as an aligned second column. Display-only:
+descriptions are never echoed or returned, and an empty string renders
+nothing for that item (default: NULL).}
+
+\item{echo}{Print the confirmation line after a completed selection
+(default: TRUE). Cancellation notices print regardless.}
 }
 \value{
-Selected item(s) as character vector or indices, or NULL if cancelled
+Selected item(s) as character vector or indices, or NULL if
+cancelled. For named \code{choices} the unnamed values are returned, not the
+displayed labels.
 }
 \description{
 Creates an interactive menu in the R console allowing users to select items.

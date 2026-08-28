@@ -10,15 +10,21 @@ checkbox(
   selected = NULL,
   return_index = FALSE,
   max_visible = 10L,
-  allow_select_all = FALSE
+  allow_select_all = FALSE,
+  descriptions = NULL,
+  echo = TRUE
 )
 }
 \arguments{
-\item{choices}{Character vector of choices to display}
+\item{choices}{Character vector of choices to display. When the vector is
+named, the names are the labels shown in the menu and the (unnamed) values
+are what gets returned, separating display text from stable return
+values. Unnamed vectors are displayed and returned as-is.}
 
 \item{prompt}{Prompt message to display}
 
-\item{selected}{Pre-selected items (indices or values)}
+\item{selected}{Pre-selected items (indices or values). Character values
+match the returned values first, then the displayed labels.}
 
 \item{return_index}{Return indices instead of values (default: FALSE)}
 
@@ -28,10 +34,20 @@ Set to NULL to show all items.}
 \item{allow_select_all}{If \code{TRUE}, adds a "Select all" / "Deselect all" option
 at the top of the menu. When selected, toggles all items at once. The option
 text dynamically changes based on selection state (default: FALSE).}
+
+\item{descriptions}{Optional character vector with one entry per choice,
+rendered dim after each label as an aligned second column. Display-only:
+descriptions are never echoed or returned, and an empty string renders
+nothing for that item (default: NULL).}
+
+\item{echo}{Print the confirmation summary after a completed selection
+(default: TRUE). Cancellation notices print regardless.}
 }
 \value{
 Selected items as character vector or indices, or NULL if cancelled.
-The special "Select all" option is never included in the returned results.
+For named \code{choices} the unnamed values are returned, not the displayed
+labels. The special "Select all" option is never included in the returned
+results.
 }
 \description{
 Interactive menu for selecting multiple items from a list.
@@ -52,8 +68,11 @@ if (interactive()) {
     selected = c(1, 3)
   )
 
+  # Labels differ from the returned values
+  methods <- checkbox(c("Linear tests" = "linear_tests", "BMA" = "bma"))
+
   # With scrolling for long lists
-  items <- checkbox(1:100, max_visible = 10)
+  items <- checkbox(as.character(1:100), max_visible = 10)
 
   # With select all feature
   methods <- checkbox(

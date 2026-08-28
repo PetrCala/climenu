@@ -1,6 +1,6 @@
 Package: climenu
 Title: Interactive Command-Line Menus
-Version: 0.1.8
+Version: 0.2.0
 Authors@R:
     person("Petr", "Čala", , "61505008@fsv.cuni.cz", role = c("aut", "cre"))
 Author: Petr Čala [aut, cre]
@@ -34,4 +34,4 @@ Config/testthat/edition: 3
 Config/testthat/parallel: TRUE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.3
+Config/roxygen2/version: 8.0.0

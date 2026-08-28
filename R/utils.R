@@ -36,7 +36,7 @@ notify_fallback_once <- function() {
     return(invisible())
   }
   cli::cli_alert_info(
-    "Your terminal does not support live menus (single-key input and ANSI escapes, e.g. RStudio or RGui on Windows). Using numbered-prompt mode."
+    "Live menus need single-key input and ANSI escapes; this terminal lacks at least one (e.g. RStudio or RGui on Windows). Using numbered-prompt mode."
   )
   climenu_env$fallback_notice_shown <- TRUE
   invisible()
@@ -55,6 +55,10 @@ validate_choices <- function(choices) {
   if (any(is.na(choices))) {
     cli::cli_abort("choices must not contain NA values")
   }
+  labels <- names(choices)
+  if (!is.null(labels) && (anyNA(labels) || !all(nzchar(labels)))) {
+    cli::cli_abort("names(choices) must provide a non-empty label for every choice")
+  }
 }
 
 #' Validate max_visible parameter
@@ -69,6 +73,74 @@ validate_max_visible <- function(max_visible) {
     cli::cli_abort("max_visible must be NULL or a single number >= 1")
   }
   invisible()
+}
+
+#' Split choices into displayed labels and returned values
+#'
+#' Named vectors separate display text from return values: the names are the
+#' labels shown in the menu, the (unnamed) values are what gets returned.
+#' Unnamed vectors are displayed and returned as-is.
+#' @keywords internal
+#' @noRd
+resolve_choices <- function(choices) {
+  labels <- names(choices)
+  if (is.null(labels)) {
+    labels <- choices
+  }
+  list(labels = unname(labels), values = unname(choices))
+}
+
+#' Validate the descriptions parameter
+#' @keywords internal
+#' @noRd
+validate_descriptions <- function(descriptions, choices) {
+  if (is.null(descriptions)) {
+    return(invisible())
+  }
+  if (!is.character(descriptions) || length(descriptions) != length(choices)) {
+    cli::cli_abort("descriptions must be NULL or a character vector with one entry per choice")
+  }
+  if (anyNA(descriptions)) {
+    cli::cli_abort("descriptions must not contain NA values")
+  }
+  invisible()
+}
+
+#' Validate a single-logical flag parameter
+#' @keywords internal
+#' @noRd
+validate_flag <- function(value, name) {
+  if (!is.logical(value) || length(value) != 1 || is.na(value)) {
+    cli::cli_abort("{name} must be a single logical value")
+  }
+  invisible()
+}
+
+#' Pad a possibly styled string to a display width with plain spaces
+#' @keywords internal
+#' @noRd
+ansi_pad <- function(x, width) {
+  pad <- width - cli::ansi_nchar(x)
+  paste0(x, strrep(" ", max(pad, 0L)))
+}
+
+#' Compose numbered-fallback rows: padded labels with dim descriptions
+#'
+#' Labels are padded only on rows that carry a description, so the dim column
+#' aligns without leaving trailing whitespace on description-less rows.
+#' @keywords internal
+#' @noRd
+compose_menu_rows <- function(labels, descriptions) {
+  if (is.null(descriptions)) {
+    return(labels)
+  }
+  label_width <- max(cli::ansi_nchar(labels))
+  vapply(seq_along(labels), function(i) {
+    if (!nzchar(descriptions[[i]])) {
+      return(labels[[i]])
+    }
+    paste0(ansi_pad(labels[[i]], label_width), "  ", cli::col_grey(descriptions[[i]]))
+  }, character(1), USE.NAMES = FALSE)
 }
 
 #' Normalize selected parameter to indices
@@ -86,7 +158,10 @@ normalize_selected <- function(selected, choices, multiple = FALSE) {
       indices <- indices[indices >= 1 & indices <= length(choices)]
     }
   } else if (is.character(selected)) {
-    indices <- which(choices %in% selected)
+    indices <- which(unname(choices) %in% selected)
+    if (length(indices) == 0 && !is.null(names(choices))) {
+      indices <- which(names(choices) %in% selected)
+    }
     if (length(indices) == 0) {
       cli::cli_warn("None of the selected values found in choices. Ignoring.")
       return(NULL)
@@ -131,7 +206,7 @@ menu_symbols <- function() {
 #' @noRd
 render_menu <- function(choices, cursor_pos, selected_indices, type = c("select", "checkbox"),
                         window_offset = 1L, max_visible = NULL, allow_select_all = FALSE,
-                        select_all_text = NULL) {
+                        select_all_text = NULL, descriptions = NULL) {
   type <- match.arg(type)
 
   syms <- menu_symbols()
@@ -140,6 +215,8 @@ render_menu <- function(choices, cursor_pos, selected_indices, type = c("select"
   width <- cli::console_width()
 
   n_choices <- length(choices)
+  # Pad labels only on rows that carry a description, so the dim column aligns
+  label_width <- if (is.null(descriptions)) 0L else max(cli::ansi_nchar(choices))
   effective_length <- if (allow_select_all) n_choices + 1L else n_choices
 
   # Determine visible range (accounting for special option if enabled)
@@ -193,16 +270,27 @@ render_menu <- function(choices, cursor_pos, selected_indices, type = c("select"
       choice_index <- if (allow_select_all) pos - 1L else pos
       is_selected <- choice_index %in% selected_indices
 
-      if (type == "checkbox") {
-        checkbox_mark <- if (is_selected) syms$checkbox_on else syms$checkbox_off
-        line <- sprintf("%s %s %s", cursor_mark, checkbox_mark, choices[choice_index])
-      } else {
-        line <- sprintf("%s %s", cursor_mark, choices[choice_index])
+      label <- choices[choice_index]
+      desc <- if (is.null(descriptions)) "" else descriptions[choice_index]
+      if (nzchar(desc)) {
+        label <- ansi_pad(label, label_width)
       }
 
-      # Apply styling
+      if (type == "checkbox") {
+        checkbox_mark <- if (is_selected) syms$checkbox_on else syms$checkbox_off
+        line <- sprintf("%s %s %s", cursor_mark, checkbox_mark, label)
+      } else {
+        line <- sprintf("%s %s", cursor_mark, label)
+      }
+
+      # Highlight only the label part under the cursor; the description keeps
+      # its dim color, so an SGR reset inside the label cannot bleed into the
+      # highlight.
       if (is_cursor) {
         line <- cli::col_cyan(line)
+      }
+      if (nzchar(desc)) {
+        line <- paste0(line, "  ", cli::col_grey(desc))
       }
 
       lines <- c(lines, emit_line(line))
