@@ -11,7 +11,7 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  eval = FALSE  # Set to FALSE since interactive examples can't run in vignettes
+  eval = FALSE # Set to FALSE since interactive examples can't run in vignettes
 )
 ```
 
@@ -28,6 +28,8 @@ library(climenu)
 - **Single selection menus** - Choose one item from a list
 - **Multiple selection menus** - Select multiple items with checkboxes
 - **Keyboard navigation** - Arrow keys or vi-style (j/k) navigation
+- **Labels vs values** - Named choices display the names and return the values
+- **Dim descriptions** - Optional aligned description column per choice
 - **Pre-selection support** - Start with items already selected
 - **Flexible returns** - Get back values or indices
 - **Graceful fallback** - Works in non-interactive environments
@@ -107,7 +109,7 @@ selected <- checkbox(
 # Pre-select by index
 selected <- checkbox(
   choices = c("Option A", "Option B", "Option C", "Option D"),
-  selected = c(1, 3),  # First and third items
+  selected = c(1, 3), # First and third items
   prompt = "Modify your selection:"
 )
 ```
@@ -118,7 +120,7 @@ For single-selection menus, pre-selection sets the cursor position:
 # Start with cursor on the second option
 choice <- select(
   choices = c("Small", "Medium", "Large"),
-  selected = 2,  # or "Medium"
+  selected = 2, # or "Medium"
   prompt = "Select size:"
 )
 ```
@@ -162,6 +164,35 @@ methods <- checkbox(
 
 This is handy when users are likely to want most or all items and only need to deselect a few.
 
+### Labels, Values, and Descriptions
+
+Named choices separate what the user sees from what your code receives: the names are the labels shown in the menu, and the (unnamed) values are what gets returned. This removes the need to map a returned label back to an action key.
+
+```{r named-choices}
+action <- select(
+  c("Run methods" = "run", "Adjust options" = "options", "Quit" = "quit"),
+  prompt = "What next?"
+)
+# The menu displays "Run methods", "Adjust options", "Quit"
+# Returns: "run", "options", or "quit"
+```
+
+Each choice can also carry a description, rendered dim after the label as an aligned second column. Descriptions are display-only: they are never echoed after the selection and never returned.
+
+```{r descriptions}
+screen <- select(
+  c("Overview", "Columns", "Studies"),
+  descriptions = c(
+    "size and missingness summary",
+    "role and type per column",
+    "per-study estimate counts"
+  ),
+  prompt = "Preview data"
+)
+```
+
+The confirmation line after a completed selection can be suppressed with `echo = FALSE` when the calling code prints its own summary.
+
 ## Keyboard Controls
 
 | Key | Action |
@@ -191,7 +222,7 @@ env <- select(
 # Enable features
 features <- checkbox(
   choices = c("Logging", "Caching", "Analytics", "Debug Mode"),
-  selected = c("Logging", "Caching"),  # Sensible defaults
+  selected = c("Logging", "Caching"), # Sensible defaults
   prompt = "Enable features:"
 )
 
@@ -312,7 +343,7 @@ This ensures your code can run in both interactive and automated contexts.
 # This will work in both interactive and non-interactive modes
 choice <- select(
   choices = c("Option 1", "Option 2", "Option 3"),
-  selected = 1  # Fallback for non-interactive
+  selected = 1 # Fallback for non-interactive
 )
 
 # In non-interactive mode: issues warning and returns "Option 1"

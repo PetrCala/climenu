@@ -9,23 +9,38 @@ select(
   prompt = "Select an item:",
   selected = NULL,
   return_index = FALSE,
-  max_visible = 10L
+  max_visible = 10L,
+  descriptions = NULL,
+  echo = TRUE
 )
 }
 \arguments{
-\item{choices}{Character vector of choices to display}
+\item{choices}{Character vector of choices to display. When the vector is
+named, the names are the labels shown in the menu and the (unnamed) values
+are what gets returned, separating display text from stable return
+values. Unnamed vectors are displayed and returned as-is.}
 
 \item{prompt}{Prompt message to display}
 
-\item{selected}{Pre-selected item (index or value)}
+\item{selected}{Pre-selected item (index or value). A character value
+matches the returned values first, then the displayed labels.}
 
 \item{return_index}{Return index instead of value (default: FALSE)}
 
 \item{max_visible}{Maximum number of items to display at once (default: 10).
 Set to NULL to show all items.}
+
+\item{descriptions}{Optional character vector with one entry per choice,
+rendered dim after each label as an aligned second column. Display-only:
+descriptions are never echoed or returned, and an empty string renders
+nothing for that item (default: NULL).}
+
+\item{echo}{Print the confirmation line after a completed selection
+(default: TRUE). Cancellation notices print regardless.}
 }
 \value{
-Selected item as character or index, or NULL if cancelled
+Selected value as character or index, or NULL if cancelled. For
+named \code{choices} the unnamed value is returned, not the displayed label.
 }
 \description{
 Interactive menu for selecting a single item from a list.
@@ -36,7 +51,16 @@ if (interactive()) {
   choice <- select(c("Yes", "No", "Maybe"))
   index <- select(c("First", "Second", "Third"), return_index = TRUE)
 
+  # Labels differ from the returned values
+  action <- select(c("Run methods" = "run", "Quit" = "quit"))
+
+  # With dim descriptions
+  screen <- select(
+    c("Studies", "Columns"),
+    descriptions = c("per-study estimate counts", "role and type per column")
+  )
+
   # With scrolling for long lists
-  choice <- select(1:100, max_visible = 10)
+  choice <- select(as.character(1:100), max_visible = 10)
 }
 }
