@@ -6,6 +6,7 @@
 * New `echo` parameter on `select()`, `checkbox()`, and `menu()` to suppress the confirmation summary after a completed selection.
 * Numbered fallback menus truncate their rows to the console width, matching the live menu.
 * The one-time fallback notice no longer misattributes the cause: live menus need both single-key input and ANSI escapes, and the fallback engages when either is missing.
+* Live menus no longer flicker while navigating: each keystroke repaints the frame in one atomic write instead of erasing and redrawing line by line, the text cursor is hidden while the menu is on screen, and redraws are wrapped in synchronized-output guards for terminals that support them.
 
 # climenu 0.1.8
 
