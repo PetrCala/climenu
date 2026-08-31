@@ -206,7 +206,7 @@ menu_symbols <- function() {
 #' @noRd
 render_menu <- function(choices, cursor_pos, selected_indices, type = c("select", "checkbox"),
                         window_offset = 1L, max_visible = NULL, allow_select_all = FALSE,
-                        select_all_text = NULL, descriptions = NULL) {
+                        select_all_text = NULL, descriptions = NULL, replace_lines = 0L) {
   type <- match.arg(type)
 
   syms <- menu_symbols()
@@ -229,20 +229,18 @@ render_menu <- function(choices, cursor_pos, selected_indices, type = c("select"
     visible_end <- min(window_offset + max_visible - 1L, effective_length)
   }
 
-  # Track lines for clearing later
+  # Collect the frame lines; emit_frame() writes them in one go at the end
   lines <- character(0)
 
-  emit_line <- function(line) {
-    line <- cli::ansi_strtrim(line, width)
-    cat(line, "\n", sep = "")
-    line
+  trim_line <- function(line) {
+    cli::ansi_strtrim(line, width)
   }
 
   # Show indicator if there are items above
   items_above <- visible_start - 1L
   if (items_above > 0) {
     indicator <- cli::col_silver(sprintf("%s %d more above", syms$arrow_up, items_above))
-    lines <- c(lines, emit_line(indicator))
+    lines <- c(lines, trim_line(indicator))
   }
 
   # Render visible items
@@ -263,7 +261,7 @@ render_menu <- function(choices, cursor_pos, selected_indices, type = c("select"
         line <- cli::col_silver(line)
       }
 
-      lines <- c(lines, emit_line(line))
+      lines <- c(lines, trim_line(line))
     } else {
       # Render normal choice item
       # Map position to choice index (position 2 = index 1, etc.)
@@ -293,7 +291,7 @@ render_menu <- function(choices, cursor_pos, selected_indices, type = c("select"
         line <- paste0(line, "  ", cli::col_grey(desc))
       }
 
-      lines <- c(lines, emit_line(line))
+      lines <- c(lines, trim_line(line))
     }
   }
 
@@ -301,8 +299,10 @@ render_menu <- function(choices, cursor_pos, selected_indices, type = c("select"
   items_below <- effective_length - visible_end
   if (items_below > 0) {
     indicator <- cli::col_silver(sprintf("%s %d more below", syms$arrow_down, items_below))
-    lines <- c(lines, emit_line(indicator))
+    lines <- c(lines, trim_line(indicator))
   }
+
+  emit_frame(lines, replace_lines)
 
   return(lines)
 }
@@ -335,23 +335,60 @@ get_keypress <- function() {
   key
 }
 
-#' Move cursor up n lines
+#' Emit one menu frame as a single atomic write
+#'
+#' Erasing and repainting line by line lets the terminal display half-drawn
+#' frames, which reads as flicker. Composing the whole frame (cursor
+#' repositioning, per-line erase, leftover-row cleanup) into one `cat()` gives
+#' the terminal a single write per keystroke. Redraws that replace a previous
+#' frame are additionally wrapped in synchronized-output guards
+#' (`ESC[?2026h`/`ESC[?2026l`), which capable terminals use to repaint
+#' tear-free and other terminals ignore.
 #' @keywords internal
 #' @noRd
-move_cursor_up <- function(n) {
-  if (n > 0) {
-    cat(sprintf("\033[%dA", n))
+emit_frame <- function(lines, replace_lines = 0L) {
+  parts <- character(0)
+  if (replace_lines > 0L) {
+    parts <- c(parts, "\033[?2026h", sprintf("\033[%dA\r", replace_lines))
   }
+  parts <- c(parts, paste0("\033[2K", lines, "\n"))
+  leftover <- replace_lines - length(lines)
+  if (leftover > 0L) {
+    # The new frame is shorter (a scroll indicator disappeared): blank the
+    # leftover rows, then move back up so output continues right below the
+    # frame
+    parts <- c(parts, strrep("\033[2K\n", leftover), sprintf("\033[%dA", leftover))
+  }
+  if (replace_lines > 0L) {
+    parts <- c(parts, "\033[?2026l")
+  }
+  cat(paste(parts, collapse = ""))
+  invisible(lines)
 }
 
-#' Clear n lines
+#' Clear n lines above the cursor in one write
 #' @keywords internal
 #' @noRd
 clear_lines <- function(n) {
   if (n > 0) {
-    for (i in seq_len(n)) {
-      move_cursor_up(1)
-      cat("\033[2K") # Clear entire line
-    }
+    cat(strrep("\033[1A\033[2K", n))
   }
+}
+
+#' Hide the terminal text cursor while a live menu is on screen
+#'
+#' The hardware cursor hops across the frame during every redraw, which reads
+#' as flicker. Callers must pair this with `show_cursor()` via `on.exit()` so
+#' a cancelled menu or an error cannot leave the cursor hidden.
+#' @keywords internal
+#' @noRd
+hide_cursor <- function() {
+  cat("\033[?25l")
+}
+
+#' Restore the terminal text cursor
+#' @keywords internal
+#' @noRd
+show_cursor <- function() {
+  cat("\033[?25h")
 }

@@ -128,12 +128,19 @@ checkbox <- function(choices,
     "Select all"
   }
 
+  # Hide the text cursor for the lifetime of the live menu; restore it on
+  # every exit path, including errors and interrupts
+  hide_cursor()
+  on.exit(show_cursor(), add = TRUE)
+
   # Display prompt
   cat("\n")
   cli::cli_text(prompt)
   cat("\n")
 
-  # Main interaction loop
+  # Main interaction loop. Each pass repaints the frame over the previous one
+  # in a single write; the frame is only cleared for good on Enter or Esc.
+  drawn_lines <- 0L
   repeat {
     # Render menu
     menu_lines <- render_menu(
@@ -145,16 +152,14 @@ checkbox <- function(choices,
       max_visible = max_visible,
       allow_select_all = allow_select_all,
       select_all_text = if (allow_select_all) get_select_all_text() else NULL,
-      descriptions = descriptions
+      descriptions = descriptions,
+      replace_lines = drawn_lines
     )
 
-    n_lines <- length(menu_lines)
+    drawn_lines <- length(menu_lines)
 
     # Get user input
     key <- get_keypress()
-
-    # Clear previous menu
-    clear_lines(n_lines)
 
     # Handle key press (j/k are already mapped to up/down in get_keypress)
     if (key == "up") {
@@ -209,12 +214,14 @@ checkbox <- function(choices,
     } else if (key == "enter") {
       break
     } else if (key == "esc") {
+      clear_lines(drawn_lines)
       cat("\n")
       cli::cli_alert_info("Selection cancelled")
       return(NULL)
     }
   }
 
+  clear_lines(drawn_lines)
   cat("\n")
   echo_checkbox_summary(labels, selected_indices, echo)
 
